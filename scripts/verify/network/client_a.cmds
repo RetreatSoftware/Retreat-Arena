@@ -1,0 +1,25 @@
+# Network check, client A (player 0, the first to join): walks, turns with the mouse and jumps once
+# client B is there to see it. Every input travels as a command line per tick and is predicted.
+wait_until 3000 assert.net_joined
+# run.mjs starts client B when it sees this line.
+net.status
+wait_until 60000 assert.spawn_count 2
+wait 128
+input.set_axis movement_advance 1
+wait 96
+input.look 200 0
+input.key_down Space
+wait 4
+input.key_up Space
+wait 30
+input.clear_axis movement_advance
+wait 128
+assert.movement_grounded 0 true
+# Client B leaves when it has seen the walk.
+wait_until 60000 assert.spawn_count 1
+wait 64
+net.bodies
+net.states
+net.stats
+assert.net_corrections_at_most 200
+quit

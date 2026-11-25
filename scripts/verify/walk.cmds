@@ -1,0 +1,62 @@
+# One player walks around the arena with real keys and mouse movement: walls stop it and the camera,
+# it climbs the stairs, jumps onto the high platform and dashes. Run from the repository root.
+spawn.solo 0
+assert.spawn_count 1
+wait 20
+assert.movement_grounded 0 true
+assert.movement_near 0 0 0 26 0.05
+assert.shoulder_distance arena_camera 3.4 3.7
+snapshot walk_spawn
+# Backwards into the south wall: the character stops at it and the camera stays in front of it.
+input.key_down S
+wait 80
+assert.movement_near 0 0 0 29.65 0.1
+input.key_up S
+wait 10
+assert.shoulder_distance arena_camera 0 1.2
+snapshot walk_wall_camera
+# A step to the left (x -0.5) to pass the cover blocks, then north at walking speed.
+input.key_down A
+wait 4
+input.key_up A
+wait 30
+input.key_down W
+wait 60
+assert.movement_speed 0 6 0.05
+input.key_down ShiftLeft
+wait 60
+assert.movement_speed 0 9 0.05
+snapshot walk_sprint
+# Run on up the stairs onto the 1 m platform.
+wait 190
+input.key_up W
+input.key_up ShiftLeft
+wait 40
+assert.movement_grounded 0 true
+assert.movement_near 0 -0.5 1 -11 1.5
+snapshot walk_platform
+# Jump up onto the 2 m platform.
+input.key_down W
+wait 20
+input.key_down Space
+wait 4
+input.key_up Space
+wait 60
+input.key_up W
+wait 40
+assert.movement_grounded 0 true
+assert.movement_near 0 -0.6 2 -19 3
+snapshot walk_high_platform
+# Turn right with the mouse (a quarter turn is 714 counts) and dash off the platform.
+input.look 714 0
+wait 2
+input.key_down ControlLeft
+wait 4
+assert.movement_speed 0 18 0.5
+snapshot walk_dash
+input.key_up ControlLeft
+wait 100
+assert.movement_grounded 0 true
+state.hash
+assert.state_hash 0x7da49d993fdf7938
+quit

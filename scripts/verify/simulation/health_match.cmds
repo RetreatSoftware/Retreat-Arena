@@ -7,8 +7,8 @@ health.add_dummy 2
 # The match starts with the first player; dummies appear on spawn points far apart.
 assert.match_running
 assert.health 1 100
-assert.position player_1 0 0 26
-assert.position player_2 -24 0 -24
+assert.position player_1 0 0.9 26
+assert.position player_2 -24 0.9 -24
 # Spawn protection: this hit does nothing.
 health.damage 1 50 2
 assert.health 1 100
@@ -22,7 +22,7 @@ assert.match_score 1 0
 wait 192
 # Back at full health, at the spawn point farthest from player 2.
 assert.health 1 100
-assert.position player_1 24 0 24
+assert.position player_1 24 0.9 24
 match.end
 assert.match_finished
 assert.match_winner 2
@@ -34,8 +34,8 @@ wait 640
 # The next match started by itself: scores cleared, everyone respawned.
 assert.match_running
 assert.match_score 2 0
-assert.position player_1 0 0 26
-assert.position player_2 -24 0 -24
+assert.position player_1 0 0.9 26
+assert.position player_2 -24 0.9 -24
 health.kill 2
 assert.health_dead 2
 assert.match_score 2 -1

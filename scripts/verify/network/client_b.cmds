@@ -1,0 +1,22 @@
+# Network check, client B (player 1): renders (natively or in the browser) and watches client A walk.
+# It does not move: a rendering client can tick slower than the server, which would make its own
+# inputs arrive late.
+wait_until 3000 assert.net_joined
+wait_until 3000 assert.spawn_count 2
+wait 20
+# Its own over-the-shoulder view.
+assert.shoulder_distance arena_camera 3.0 3.7
+snapshot net_b_own_view
+shoulder.stop arena_camera
+camera.set_position arena_camera 14 9 30
+camera.look_at arena_camera 0 0 20
+snapshot net_b_start
+# Where client A's walk ends.
+wait_until 20000 assert.movement_near 0 0.66 0 16.86 0.5
+wait_until 2000 assert.movement_speed 0 0 0.01
+wait 64
+snapshot net_b_sees_a
+net.bodies
+net.states
+net.stats
+quit

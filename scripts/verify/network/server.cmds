@@ -1,0 +1,13 @@
+# Network check, server (see run.mjs): both clients get a character; once client B has left, the
+# server's view of client A's character is printed for comparison.
+wait_until 20000 assert.net_clients 2
+wait_until 20000 assert.spawn_count 2
+wait_until 60000 assert.spawn_count 1
+wait 64
+net.bodies
+net.states
+net.stats
+assert.net_refusals_at_most 0
+# Stay until client A has printed and left.
+wait_until 20000 assert.spawn_count 0
+quit
