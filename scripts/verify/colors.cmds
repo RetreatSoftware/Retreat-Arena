@@ -1,4 +1,4 @@
-# Every player's color: eight characters in a row, one tint each (the game's list, in player order).
+# Every player's color: eight characters in a row, one color each (the game's list, in player order).
 # Run from the repository root.
 wait 2
 spawn.join 0

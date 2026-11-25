@@ -8,9 +8,12 @@ use retreat_engine::net::commands::NetCommandsPlugin;
 use retreat_engine::net::harness::{HarnessConfig, NetHarness};
 use retreat_engine::net::link::LinkConditions;
 use retreat_engine::{InputActionsPlugin, PhysicsPlugin, RetreatCommandsPlugin, StateHashPlugin};
-use retreat_engine_api::{AnalogInput, run_command_line};
+use retreat_engine_api::{
+    AnalogInput, NetViewTick, RayCast, cast_ray, cast_ray_at, run_command_line,
+};
 use retreat_gameplay_api::{
-    Health, LookAngles, MatchPhase, MatchState, PlayerId, Scoreboard, SpawnPoints, character_feet,
+    CHARACTER_EYE_HEIGHT, Health, LookAngles, MatchPhase, MatchState, PlayerId, Scoreboard,
+    SpawnPoints, WeaponStatus, character_feet, view_direction,
 };
 use retreat_module_character_movement::{ADVANCE_AXIS, MovementState, STRAFE_AXIS};
 
@@ -301,4 +304,184 @@ fn a_dead_character_respawns_at_a_spawn_point_and_walks_again_on_every_machine()
         let seen = character(client, 0).0;
         assert!(seen.distance(walked) < 0.05, "client {index} sees {seen}");
     }
+}
+
+/// Open ground: the shooter's feet, and the target's 8 m north of them.
+const SHOOTER_FEET: Vec3 = Vec3::new(-8.0, 0.0, 26.0);
+const TARGET_FEET: Vec3 = Vec3::new(-8.0, 0.0, 18.0);
+
+/// Puts client 1's character (the shooter) and client 0's (the target) in place; the spawn
+/// protection is over afterwards.
+fn face_off(harness: &mut NetHarness) {
+    for (name, feet) in [("player_1", SHOOTER_FEET), ("player_0", TARGET_FEET)] {
+        on_server(
+            harness,
+            &format!("physics.teleport {name} {} 0.9 {}", feet.x, feet.z),
+        );
+    }
+    harness.run_idle(150);
+}
+
+fn weapon(app: &mut App, id: u32) -> WeaponStatus {
+    let world = app.world_mut();
+    let mut query = world.query::<(&PlayerId, &WeaponStatus)>();
+    query
+        .iter(world)
+        .find(|(player, _)| player.0 == id)
+        .map(|(_, weapon)| *weapon)
+        .unwrap_or_else(|| panic!("no weapon {id}"))
+}
+
+fn health(app: &mut App, id: u32) -> u32 {
+    gameplay(app)
+        .0
+        .iter()
+        .find(|(player, _)| *player == id)
+        .map(|(_, health)| *health)
+        .unwrap_or_else(|| panic!("no player {id}"))
+}
+
+fn entity_named(app: &mut App, name: &str) -> Entity {
+    let world = app.world_mut();
+    let mut query = world.query::<(Entity, &Name)>();
+    query
+        .iter(world)
+        .find(|(_, found)| found.as_str() == name)
+        .map(|(entity, _)| entity)
+        .unwrap_or_else(|| panic!("no entity {name}"))
+}
+
+/// The yaw (level shots) at which client 1 sees the target at `view_tick`: the middle of the
+/// directions that hit it.
+fn yaw_to_what_client_1_sees(harness: &mut NetHarness, view_tick: f64) -> (f32, f32) {
+    let app = &mut harness.client_apps[1];
+    let own = entity_named(app, "player_1");
+    let eye = character(app, 1).0 + Vec3::Y * CHARACTER_EYE_HEIGHT;
+    let pitch = -0.08;
+    let hits: Vec<f32> = (-900..=900)
+        .map(|step| step as f32 * 0.001)
+        .filter(|&yaw| {
+            let cast = RayCast {
+                origin: eye,
+                direction: view_direction(LookAngles { yaw, pitch }),
+                max_distance: 100.0,
+                exclude: vec![own],
+            };
+            cast_ray_at(app.world_mut(), &cast, view_tick).is_some_and(|hit| hit.name == "player_0")
+        })
+        .collect();
+    assert!(!hits.is_empty(), "client 1 does not see the target");
+    (hits[hits.len() / 2], pitch)
+}
+
+fn server_hits_now(harness: &mut NetHarness, yaw: f32, pitch: f32) -> bool {
+    let app = &mut harness.server_app;
+    let own = entity_named(app, "player_1");
+    let eye = character(app, 1).0 + Vec3::Y * CHARACTER_EYE_HEIGHT;
+    let cast = RayCast {
+        origin: eye,
+        direction: view_direction(LookAngles { yaw, pitch }),
+        max_distance: 100.0,
+        exclude: vec![own],
+    };
+    cast_ray(app.world_mut(), &cast).is_some_and(|hit| hit.name == "player_0")
+}
+
+#[test]
+fn a_shot_at_a_running_target_hits_what_the_shooter_saw_over_a_lossy_link() {
+    let mut harness = harness_over(
+        LinkConditions {
+            latency_ticks: 8,
+            jitter_ticks: 2,
+            loss: 0.08,
+        },
+        4,
+    );
+    face_off(&mut harness);
+    // The target sprints sideways.
+    press(&mut harness, 0, KeyCode::ShiftLeft, true);
+    hold(&mut harness, 0, STRAFE_AXIS, 1.0);
+    harness.run_idle(30);
+    let shots = 3;
+    let mut would_have_missed = 0;
+    for _ in 0..shots {
+        let view_tick = harness.client_apps[1]
+            .world()
+            .resource::<NetViewTick>()
+            .for_input();
+        assert!(view_tick > 0.0, "the client draws from the server's past");
+        let (yaw, pitch) = yaw_to_what_client_1_sees(&mut harness, view_tick);
+        would_have_missed += u32::from(!server_hits_now(&mut harness, yaw, pitch));
+        harness.step(&[(1, vec![format!("rifle.fire {yaw} {pitch} {view_tick}")])]);
+        harness.run_idle(14);
+    }
+    hold(&mut harness, 0, STRAFE_AXIS, 0.0);
+    press(&mut harness, 0, KeyCode::ShiftLeft, false);
+    harness.run_idle(30);
+    assert_eq!(
+        would_have_missed, shots,
+        "without lag compensation every shot would miss"
+    );
+    let hits = weapon(&mut harness.server_app, 1).hits_landed;
+    // An input may be lost; every one that arrived must hit.
+    let fired = 30 - weapon(&mut harness.server_app, 1).ammo;
+    assert!(fired >= 2, "only {fired} shots arrived");
+    assert_eq!(hits, fired, "every shot that arrived hit");
+    assert_eq!(health(&mut harness.server_app, 0), 100 - 20 * hits);
+    harness.run_idle(100);
+    assert_clients_agree(&mut harness, "after the shots");
+    for client in &mut harness.client_apps {
+        assert_eq!(weapon(client, 1).hits_landed, hits);
+    }
+}
+
+fn hold_fire(harness: &mut NetHarness, down: bool) {
+    let mut buttons = harness.client_apps[1]
+        .world_mut()
+        .resource_mut::<ButtonInput<MouseButton>>();
+    if down {
+        buttons.press(MouseButton::Left);
+    } else {
+        buttons.release(MouseButton::Left);
+    }
+}
+
+#[test]
+fn holding_fire_kills_and_the_victim_respawns_on_every_machine() {
+    let mut harness = harness();
+    face_off(&mut harness);
+    // No camera on this machine: the shots go where the player looks.
+    let camera = entity_named(&mut harness.client_apps[1], "arena_camera");
+    harness.client_apps[1].world_mut().despawn(camera);
+    // From the eyes down to the middle of a body 8 m ahead.
+    run_command_line(harness.client_apps[1].world_mut(), "movement.look 0 -0.087")
+        .expect("a player");
+    harness.run_idle(30);
+    hold_fire(&mut harness, true);
+    for _ in 0..200 {
+        harness.run_idle(1);
+        if health(&mut harness.server_app, 0) == 0 {
+            break;
+        }
+    }
+    hold_fire(&mut harness, false);
+    on_server(&mut harness, "assert.health_dead 0");
+    harness.run_idle(40);
+    on_server(&mut harness, "assert.rifle_hits 1 5");
+    on_server(&mut harness, "assert.match_score 1 1");
+    assert_clients_agree(&mut harness, "after the kill");
+    let shooter = weapon(&mut harness.server_app, 1);
+    for client in &mut harness.client_apps {
+        assert_eq!(weapon(client, 1), shooter);
+    }
+    harness.run_idle(250);
+    on_server(&mut harness, "assert.health 0 100");
+    on_server(&mut harness, "assert.rifle_ammo 0 30");
+    let back = character(&mut harness.server_app, 0).0;
+    assert!(back.distance(TARGET_FEET) > 5.0, "at a spawn point: {back}");
+    for client in &mut harness.client_apps {
+        assert!(character(client, 0).0.distance(back) < 0.05);
+    }
+    assert_clients_agree(&mut harness, "after the respawn");
+    assert_eq!(harness.server().stats.refusals(), 0);
 }

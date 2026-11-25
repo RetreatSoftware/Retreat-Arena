@@ -12,9 +12,11 @@ use retreat_module_character_movement::CharacterMovementModulePlugin;
 use retreat_module_character_visuals::{
     CharacterModel, CharacterVisualsConfig, CharacterVisualsModulePlugin, Clip,
 };
-use retreat_module_health::HealthModulePlugin;
+use retreat_module_combat_hud::{CombatHudConfig, CombatHudModulePlugin};
+use retreat_module_health::{HealthConfig, HealthModulePlugin};
 use retreat_module_match::MatchModulePlugin;
 use retreat_module_player_spawn::PlayerSpawnModulePlugin;
+use retreat_module_rifle::{RifleConfig, RifleModulePlugin};
 use retreat_module_third_person_camera::ThirdPersonCameraModulePlugin;
 
 /// The map every machine loads at startup.
@@ -41,21 +43,49 @@ const SKY_COLOR: Color = Color::srgb(0.53, 0.7, 0.86);
 const CHARACTER_MODEL_PATH: &str = "models/Fox.glb";
 const CHARACTER_MODEL_SCALE: f32 = 0.012;
 
-/// One tint per player, `(red, green, blue)` in linear light. The engine multiplies the fox's orange
-/// texture by it, and that texture holds almost no blue, so the blue-ish tints need factors far above
-/// 1. Order: red, blue, green, natural, purple, charcoal, cyan, white.
-const PLAYER_TINTS: [(f32, f32, f32); MAX_PLAYERS] = [
-    (0.9, 0.12, 0.1),
-    (0.08, 0.6, 14.0),
-    (0.12, 1.8, 1.0),
-    (1.0, 1.0, 1.0),
-    (0.35, 0.15, 12.0),
-    (0.04, 0.09, 0.5),
-    (0.08, 2.6, 18.0),
-    (1.3, 3.5, 25.0),
+/// One color per player, in player order: red, blue, green, yellow, purple, orange, cyan, white.
+/// They replace the fox's texture (`flat_colors`), so they show as written.
+const PLAYER_COLORS: [(f32, f32, f32); MAX_PLAYERS] = [
+    (0.85, 0.12, 0.1),
+    (0.12, 0.35, 0.95),
+    (0.15, 0.7, 0.2),
+    (0.95, 0.8, 0.1),
+    (0.55, 0.2, 0.85),
+    (0.95, 0.45, 0.05),
+    (0.1, 0.8, 0.85),
+    (0.92, 0.92, 0.92),
 ];
 
-/// How characters look: the fox, one tint per player.
+/// The rifle's numbers (recorded in CLAUDE.md): 5 hits kill, about 7 shots a second.
+fn rifle() -> RifleConfig {
+    RifleConfig {
+        damage: 20,
+        fire_interval_seconds: 0.15,
+        magazine: 30,
+        reload_seconds: 1.5,
+        range: 100.0,
+    }
+}
+
+fn health() -> HealthConfig {
+    HealthConfig {
+        max_health: 100,
+        respawn_delay_seconds: 3.0,
+        spawn_protection_seconds: 1.0,
+        fall_out_height: -10.0,
+    }
+}
+
+fn combat_hud() -> CombatHudConfig {
+    CombatHudConfig {
+        hit_marker_seconds: 0.2,
+        hit_marker_text: "HIT".to_string(),
+        font_size: 28.0,
+        crosshair_size: 24.0,
+    }
+}
+
+/// How characters look: the fox, one color per player.
 fn character_visuals() -> CharacterVisualsConfig {
     let clip = |name: &str, rate: f32, matched_speed: Option<f32>| Clip {
         name: name.to_string(),
@@ -74,9 +104,10 @@ fn character_visuals() -> CharacterVisualsConfig {
             run: clip("Run", 1.0, Some(7.0)),
             air: clip("Run", 0.4, None),
         }),
-        colors: PLAYER_TINTS
-            .map(|(red, green, blue)| Color::linear_rgb(red, green, blue))
+        colors: PLAYER_COLORS
+            .map(|(red, green, blue)| Color::srgb(red, green, blue))
             .to_vec(),
+        flat_colors: true,
         ..default()
     }
 }
@@ -85,6 +116,9 @@ fn character_visuals() -> CharacterVisualsConfig {
 pub fn add_arena_plugins(app: &mut App) {
     // Modules not configured here use their config defaults.
     app.insert_resource(character_visuals())
+        .insert_resource(rifle())
+        .insert_resource(health())
+        .insert_resource(combat_hud())
         .insert_resource(ClearColor(SKY_COLOR));
     app.add_plugins((
         ArenaModulePlugin,
@@ -94,6 +128,8 @@ pub fn add_arena_plugins(app: &mut App) {
         CharacterVisualsModulePlugin,
         HealthModulePlugin,
         MatchModulePlugin,
+        RifleModulePlugin,
+        CombatHudModulePlugin,
     ))
     .add_systems(
         Startup,
@@ -154,7 +190,7 @@ fn spawn_view(mut commands: Commands) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use retreat_engine::{InputActionsPlugin, RetreatCommandsPlugin};
+    use retreat_engine::{InputActionsPlugin, PhysicsPlugin, RetreatCommandsPlugin};
     use retreat_gameplay_api::{PlayerId, SoloPlayer};
     use retreat_module_arena::LoadedArena;
 
@@ -164,11 +200,16 @@ mod tests {
         app.add_plugins((
             MinimalPlugins,
             AssetPlugin::default(),
+            TransformPlugin,
             bevy::input::InputPlugin,
         ))
         .init_asset::<Mesh>()
         .init_asset::<StandardMaterial>()
-        .add_plugins((RetreatCommandsPlugin::default(), InputActionsPlugin));
+        .add_plugins((
+            RetreatCommandsPlugin::default(),
+            PhysicsPlugin,
+            InputActionsPlugin,
+        ));
         add_arena_plugins(&mut app);
         app.update();
         let world = app.world_mut();

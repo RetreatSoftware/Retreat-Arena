@@ -1,0 +1,63 @@
+# Shooting on the arena, one machine: player 0 aims at player 1 seven metres ahead, kills it with
+# the held fire button, reloads, dies and respawns. Run from the repository root.
+spawn.solo 0
+spawn.join 1
+physics.teleport player_1 0 0.9 19
+wait_until 600 assert.visual_ready player_0
+wait_until 600 assert.visual_ready player_1
+# Spawn protection is over; the crosshair (beside the shoulder) is put on player 1.
+wait 80
+movement.look 0.0859 -0.0856
+wait 20
+assert.ui_text hud_health Health 100
+assert.ui_text hud_ammo Ammo 30/30
+assert.hud_shown hud_crosshair true
+assert.hud_shown hud_hit false
+snapshot combat_aim
+input.key_down MouseLeft
+wait 3
+assert.health 1 80
+assert.hud_shown hud_hit true
+assert.ui_text hud_hit HIT
+snapshot combat_hit
+wait_until 100 assert.health_dead 1
+input.key_up MouseLeft
+wait 2
+assert.rifle_hits 0 5
+assert.rifle_ammo 0 25
+assert.match_score 0 1
+assert.visuals_hidden 1 true
+wait 20
+assert.hud_shown hud_hit false
+snapshot combat_killed
+input.tap R
+wait 3
+assert.ui_text hud_ammo Reloading
+snapshot combat_reloading
+wait 100
+assert.rifle_ammo 0 30
+wait_until 200 assert.health 1 100
+wait 2
+assert.visuals_hidden 1 false
+# Now the other way round: this player dies.
+wait 80
+health.kill 0
+wait 3
+assert.visuals_hidden 0 true
+assert.hud_shown hud_crosshair false
+assert.hud_shown hud_ammo false
+assert.ui_text hud_health Health 0
+assert.ui_text hud_respawn Respawn in 3
+snapshot combat_own_death
+# A dead player does not shoot.
+input.key_down MouseLeft
+wait 20
+input.key_up MouseLeft
+assert.rifle_ammo 0 30
+wait_until 300 assert.health 0 100
+wait 10
+assert.visuals_hidden 0 false
+assert.hud_shown hud_respawn false
+assert.hud_shown hud_crosshair true
+snapshot combat_respawned
+quit

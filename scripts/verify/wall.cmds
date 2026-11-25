@@ -1,0 +1,19 @@
+# The camera against a wall: the own character stays in the picture. Run from the repository root.
+spawn.solo 0
+wait_until 600 assert.visual_ready player_0
+# Backwards into the south wall; the fox now faces the wall.
+input.key_down S
+wait 80
+input.key_up S
+wait 30
+assert.movement_near 0 0 0 29.65 0.1
+assert.shoulder_distance arena_camera 0 1.4
+snapshot wall_backed
+# A short step forward turns the fox away from the wall.
+input.key_down W
+wait 3
+input.key_up W
+wait 30
+assert.shoulder_distance arena_camera 0 1.4
+snapshot wall_facing_away
+quit

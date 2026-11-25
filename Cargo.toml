@@ -29,6 +29,8 @@ retreat_module_player_spawn = { git = "https://github.com/RetreatSoftware/Retrea
 retreat_module_character_movement = { git = "https://github.com/RetreatSoftware/Retreat-Modules" }
 retreat_module_third_person_camera = { git = "https://github.com/RetreatSoftware/Retreat-Modules" }
 retreat_module_character_visuals = { git = "https://github.com/RetreatSoftware/Retreat-Modules" }
+retreat_module_rifle = { git = "https://github.com/RetreatSoftware/Retreat-Modules" }
+retreat_module_combat_hud = { git = "https://github.com/RetreatSoftware/Retreat-Modules" }
 
 # Same build profiles as the engine: Bevy is slow unoptimized, and full debug info makes target/ huge.
 [profile.dev]

@@ -2,7 +2,7 @@
 
 A third-person arena shooter built with the [Retreat engine](https://github.com/RetreatSoftware/Retreat-Engine-3D)
 and [Retreat modules](https://github.com/RetreatSoftware/Retreat-Modules). Early stage: foxes in their
-own colors walk around the arena, alone or over the local network. There are no weapons yet. Asset
+own colors walk around the arena and shoot each other with a rifle, alone or over the local network. Asset
 credits: [assets/CREDITS.md](assets/CREDITS.md).
 
 All commands are PowerShell, run from this folder.
@@ -14,7 +14,8 @@ cargo run
 ```
 
 Click to turn with the mouse, Escape to release it. W A S D move, Shift sprints, Space jumps, Ctrl
-dashes, Q swaps shoulder.
+dashes, Q swaps shoulder. Hold the left mouse button to shoot, R reloads. Five hits kill; you come
+back after 3 seconds. Alone there is nobody to shoot at.
 
 ## Play with a server and two clients
 
@@ -63,6 +64,14 @@ cargo run -- --headless --commands scripts/verify/visuals.cmds
 
 ```powershell
 cargo run -- --headless --commands scripts/verify/colors.cmds
+```
+
+```powershell
+cargo run -- --headless --commands scripts/verify/combat.cmds
+```
+
+```powershell
+cargo run -- --headless --commands scripts/verify/wall.cmds
 ```
 
 ```powershell

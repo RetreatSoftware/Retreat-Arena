@@ -1,12 +1,13 @@
 // Network check: the game's server and two clients as real processes talking WebTransport on
-// localhost, each running its script in real time. Client A moves, client B watches and renders.
+// localhost, each running its script in real time. Client A moves; client B renders, watches, then
+// shoots A dead and sees it respawn.
 //
 //   cargo build
 //   node scripts/verify/network/run.mjs [--software-renderer]
 //   node scripts/web/build.mjs; node scripts/verify/network/run.mjs --browser   (client B in headless Chrome)
 //
-// Passes when every process exits 0, A walked, B stayed where the server put it, and all three agree on A's
-// character (position and every synced component). Snapshots: target/snapshots/ (browser:
+// Passes when every process exits 0, A came back away from where it was shot, B stayed where the server
+// put it, and all three agree on A's character (position and every synced component). Snapshots: target/snapshots/ (browser:
 // target/snapshots/web/).
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
@@ -21,8 +22,8 @@ const softwareRenderer = process.argv.includes("--software-renderer") ? ["--soft
 const TIMEOUT_MS = 900_000;
 /** How far apart two machines may see a body. */
 const TOLERANCE = 0.05;
-/** Spawn points of the first two players (feet height plus half a character). */
-const SPAWN_A = [0, 0.9, 26];
+/** Where the server puts player 0 to be shot. */
+const SHOT_A = [-0.15, 0.9, 17.37];
 /** Where the server puts player 1, who then stays there. */
 const PLACE_B = [3, 0.9, 18];
 const processes = [];
@@ -94,7 +95,7 @@ await waitFor("every process to finish", () => processes.every((p) => p.exited =
 
 const seenByServer = positions(server).get("player_0");
 if (!seenByServer) fail("the server printed no position for player_0");
-if (distance(seenByServer, SPAWN_A) < 5) fail(`player_0 did not walk: ${seenByServer}`);
+if (distance(seenByServer, SHOT_A) < 5) fail(`player_0 did not respawn at a spawn point: ${seenByServer}`);
 for (const p of [a, b]) {
   const seen = positions(p).get("player_0");
   if (!seen || distance(seen, seenByServer) > TOLERANCE) fail(`${p.name} sees player_0 at ${seen}, the server at ${seenByServer}`);

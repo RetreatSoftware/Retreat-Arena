@@ -1,6 +1,5 @@
-# Network check, client B (player 1): renders (natively or in the browser) and watches client A walk.
-# It does not move: a rendering client can tick slower than the server, which would make its own
-# inputs arrive late.
+# Network check, client B (player 1): renders (natively or in the browser), watches client A walk,
+# then shoots it and sees it respawn. It does not walk.
 wait_until 3000 assert.net_joined
 wait_until 3000 assert.spawn_count 2
 wait_until 3000 assert.visual_ready player_0
@@ -27,6 +26,30 @@ wait 64
 # The other player is drawn smoothly, and the picture settles where it is.
 assert.drawn_position player_0 -0.15 0.9 17.37 0.6
 snapshot net_b_sees_a
+# Aims at client A's player with its own camera again (the server puts that player on the spot).
+shoulder.follow arena_camera
+camera.set_fov arena_camera 70
+movement.look 1.561 -0.185
+wait_until 20000 assert.movement_near 0 -0.15 0 17.37 0.05
+wait 64
+assert.hud_shown hud_crosshair true
+assert.ui_text hud_health Health 100
+assert.ui_text hud_ammo Ammo 30/30
+snapshot net_b_aims
+input.key_down MouseLeft
+wait_until 20000 assert.hud_shown hud_hit true
+snapshot net_b_hit
+wait_until 20000 assert.health_dead 0
+input.key_up MouseLeft
+wait_until 2000 assert.visuals_hidden 0 true
+assert.rifle_hits 1 5
+snapshot net_b_killed
+# The respawn, seen from behind the player that came back.
+wait_until 20000 assert.health 0 100
+shoulder.follow arena_camera 0
+wait_until 2000 assert.visuals_hidden 0 false
+wait 128
+snapshot net_b_sees_respawn
 net.bodies
 net.states
 net.stats
