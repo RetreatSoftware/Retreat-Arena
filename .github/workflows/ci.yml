@@ -28,6 +28,13 @@ jobs:
             cargo run -- --headless --software-renderer --commands "$script"
             echo "::endgroup::"
           done
+      - name: Run scripts/verify/simulation without a renderer
+        run: |
+          for script in scripts/verify/simulation/*.cmds; do
+            echo "::group::$script"
+            cargo run -- --headless --no-render --commands "$script"
+            echo "::endgroup::"
+          done
       - name: Upload snapshots
         if: always()
         uses: actions/upload-artifact@v4

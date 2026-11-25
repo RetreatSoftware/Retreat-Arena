@@ -5,6 +5,8 @@ use bevy::prelude::*;
 use retreat_engine::dispatch_command_line;
 use retreat_engine_api::GameCamera;
 use retreat_module_arena::ArenaModulePlugin;
+use retreat_module_health::HealthModulePlugin;
+use retreat_module_match::MatchModulePlugin;
 
 /// The map every machine loads at startup.
 pub const MAP_ID: &str = "graybox";
@@ -20,7 +22,8 @@ const FILL_ILLUMINANCE: f32 = 2_000.0;
 
 /// The module selection plus this game's own setup.
 pub fn add_arena_plugins(app: &mut App) {
-    app.add_plugins(ArenaModulePlugin)
+    // Each module's numbers are its config defaults.
+    app.add_plugins((ArenaModulePlugin, HealthModulePlugin, MatchModulePlugin))
         .add_systems(Startup, (load_chosen_map, spawn_view));
 }
 

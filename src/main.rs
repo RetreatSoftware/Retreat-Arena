@@ -2,6 +2,8 @@
 //! `--software-renderer`, `--seed`, `--server`, `--connect`).
 
 mod arena_game;
+#[cfg(test)]
+mod net_play_tests;
 
 use bevy::prelude::*;
 

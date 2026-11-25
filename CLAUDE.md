@@ -12,8 +12,8 @@ The root `../CLAUDE.md` also applies here.
   light setup until a module owns them). Gameplay mechanics go in `../Retreat-Modules`; capabilities in
   `../Retreat-Engine-3D`. Never add gameplay rules or `cfg(target_arch = "wasm32")` code here.
 - Engine and modules are git dependencies; `Cargo.lock` pins the commits. The only engine crates used
-  are `retreat_engine` (`launch`, `dispatch_command_line`; tests also `RetreatCommandsPlugin`) and
-  `retreat_engine_api`.
+  are `retreat_engine` (`launch`, `dispatch_command_line`; tests also the simulation plugins and the
+  network harness) and `retreat_engine_api`.
 - A module is selected by adding its dependency in `Cargo.toml` and its plugin in
   `src/arena_game.rs::add_arena_plugins`. Its numbers are overridden there by inserting its config
   resource before the plugin.
@@ -23,14 +23,18 @@ The root `../CLAUDE.md` also applies here.
 
 - `src/main.rs` calls `retreat_engine::launch`.
 - `src/arena_game.rs`: module selection, `MAP_ID`, camera and lights.
-- `scripts/verify/*.cmds`: one script per check. Run from the repository root and open every PNG in
-  `target/snapshots/`:
+- `src/net_play_tests.rs`: server and clients in one process (this binary crate has no `tests/`).
+- `scripts/verify/*.cmds`: one script per check that writes pictures. Run from the repository root and
+  open every PNG in `target/snapshots/`:
   `cargo run -- --headless --commands scripts/verify/arena_map.cmds`
+- `scripts/verify/simulation/*.cmds`: checks with nothing to see (rules and timers). Run with
+  `--headless --no-render`: a software renderer would take minutes per script.
 - Per change: `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test`,
   `cargo check --target wasm32-unknown-unknown`, the verify scripts.
 
 ## Status
 
-Loads the `graybox` arena (`retreat_module_arena`) with an overview camera. No players yet. No
+Loads the `graybox` arena (`retreat_module_arena`) with an overview camera; selects `health` and
+`match` with their default numbers. No characters yet (`health.add_dummy` stands in). No
 browser build page yet (the engine's `web/` page and scripts are not reusable from another repository;
 needed for plan step 6).

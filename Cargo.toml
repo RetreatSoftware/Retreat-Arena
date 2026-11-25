@@ -21,6 +21,12 @@ retreat_engine = { git = "https://github.com/RetreatSoftware/Retreat-Engine-3D" 
 retreat_engine_api = { git = "https://github.com/RetreatSoftware/Retreat-Engine-3D" }
 # Gameplay modules.
 retreat_module_arena = { git = "https://github.com/RetreatSoftware/Retreat-Modules" }
+retreat_module_health = { git = "https://github.com/RetreatSoftware/Retreat-Modules" }
+retreat_module_match = { git = "https://github.com/RetreatSoftware/Retreat-Modules" }
+
+# Tests read the shared gameplay types.
+[dev-dependencies]
+retreat_gameplay_api = { git = "https://github.com/RetreatSoftware/Retreat-Modules" }
 
 # Same build profiles as the engine: Bevy is slow unoptimized, and full debug info makes target/ huge.
 [profile.dev]

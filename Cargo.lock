@@ -5281,13 +5281,16 @@ dependencies = [
  "bevy",
  "retreat_engine",
  "retreat_engine_api",
+ "retreat_gameplay_api",
  "retreat_module_arena",
+ "retreat_module_health",
+ "retreat_module_match",
 ]
 
 [[package]]
 name = "retreat_engine"
 version = "0.1.0"
-source = "git+https://github.com/RetreatSoftware/Retreat-Engine-3D#b4d9c7f509091a540208695019246cf4a0f524cc"
+source = "git+https://github.com/RetreatSoftware/Retreat-Engine-3D#19f9b923af181eceb39d6a10e1d63331d221120d"
 dependencies = [
  "bevy",
  "bevy_rapier3d",
@@ -5307,9 +5310,10 @@ dependencies = [
 [[package]]
 name = "retreat_engine_api"
 version = "0.1.0"
-source = "git+https://github.com/RetreatSoftware/Retreat-Engine-3D#b4d9c7f509091a540208695019246cf4a0f524cc"
+source = "git+https://github.com/RetreatSoftware/Retreat-Engine-3D#19f9b923af181eceb39d6a10e1d63331d221120d"
 dependencies = [
  "bevy",
+ "postcard",
  "retreat_rng",
  "serde",
  "serde_json",
@@ -5318,15 +5322,38 @@ dependencies = [
 [[package]]
 name = "retreat_gameplay_api"
 version = "0.1.0"
-source = "git+https://github.com/RetreatSoftware/Retreat-Modules#1f28cef8f7a6557e0001d2e43d2dc1e8200f29a4"
+source = "git+https://github.com/RetreatSoftware/Retreat-Modules#c1d160f4aba3b0a798e63ce93848ed57cad6106b"
 dependencies = [
  "bevy",
+ "retreat_engine_api",
+ "serde",
 ]
 
 [[package]]
 name = "retreat_module_arena"
 version = "0.1.0"
-source = "git+https://github.com/RetreatSoftware/Retreat-Modules#1f28cef8f7a6557e0001d2e43d2dc1e8200f29a4"
+source = "git+https://github.com/RetreatSoftware/Retreat-Modules#c1d160f4aba3b0a798e63ce93848ed57cad6106b"
+dependencies = [
+ "bevy",
+ "retreat_engine_api",
+ "retreat_gameplay_api",
+]
+
+[[package]]
+name = "retreat_module_health"
+version = "0.1.0"
+source = "git+https://github.com/RetreatSoftware/Retreat-Modules#c1d160f4aba3b0a798e63ce93848ed57cad6106b"
+dependencies = [
+ "bevy",
+ "retreat_engine_api",
+ "retreat_gameplay_api",
+ "serde",
+]
+
+[[package]]
+name = "retreat_module_match"
+version = "0.1.0"
+source = "git+https://github.com/RetreatSoftware/Retreat-Modules#c1d160f4aba3b0a798e63ce93848ed57cad6106b"
 dependencies = [
  "bevy",
  "retreat_engine_api",

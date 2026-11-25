@@ -1,0 +1,42 @@
+# Health and match together on the arena, with the game's default numbers (64 ticks per second:
+# spawn protection 64 ticks, respawn 192, result screen 640). Dummies stand in for players until
+# characters exist. Nothing to see, and many ticks: run without a renderer, from the repository root:
+# cargo run -- --headless --no-render --commands scripts/verify/simulation/health_match.cmds
+health.add_dummy 1
+health.add_dummy 2
+# The match starts with the first player; dummies appear on spawn points far apart.
+assert.match_running
+assert.health 1 100
+assert.position player_1 0 0 26
+assert.position player_2 -24 0 -24
+# Spawn protection: this hit does nothing.
+health.damage 1 50 2
+assert.health 1 100
+wait 64
+health.damage 1 50 2
+assert.health 1 50
+health.damage 1 50 2
+assert.health_dead 1
+assert.match_score 2 1
+assert.match_score 1 0
+wait 192
+# Back at full health, at the spawn point farthest from player 2.
+assert.health 1 100
+assert.position player_1 24 0 24
+match.end
+assert.match_finished
+assert.match_winner 2
+wait 64
+# No damage while the result is shown.
+health.damage 2 10 1
+assert.health 2 100
+wait 640
+# The next match started by itself: scores cleared, everyone respawned.
+assert.match_running
+assert.match_score 2 0
+assert.position player_1 0 0 26
+assert.position player_2 -24 0 -24
+health.kill 2
+assert.health_dead 2
+assert.match_score 2 -1
+quit
