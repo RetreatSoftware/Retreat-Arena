@@ -5,7 +5,7 @@
 //   node scripts/verify/network/run.mjs [--software-renderer]
 //   node scripts/web/build.mjs; node scripts/verify/network/run.mjs --browser   (client B in headless Chrome)
 //
-// Passes when every process exits 0, A walked, B stayed at its spawn, and all three agree on A's
+// Passes when every process exits 0, A walked, B stayed where the server put it, and all three agree on A's
 // character (position and every synced component). Snapshots: target/snapshots/ (browser:
 // target/snapshots/web/).
 import { spawn } from "node:child_process";
@@ -23,7 +23,8 @@ const TIMEOUT_MS = 900_000;
 const TOLERANCE = 0.05;
 /** Spawn points of the first two players (feet height plus half a character). */
 const SPAWN_A = [0, 0.9, 26];
-const SPAWN_B = [-24, 0.9, -24];
+/** Where the server puts player 1, who then stays there. */
+const PLACE_B = [3, 0.9, 18];
 const processes = [];
 
 function fail(message) {
@@ -39,7 +40,8 @@ function fail(message) {
 }
 
 function start(name, command, args) {
-  const child = spawn(command, args, { cwd: root });
+  // The executable is started directly, so it is told where the game's `assets` folder is.
+  const child = spawn(command, args, { cwd: root, env: { ...process.env, BEVY_ASSET_ROOT: root } });
   const started = { name, child, output: "", exited: null };
   const collect = (chunk) => {
     // Without the terminal color codes of the engine's log.
@@ -98,7 +100,7 @@ for (const p of [a, b]) {
   if (!seen || distance(seen, seenByServer) > TOLERANCE) fail(`${p.name} sees player_0 at ${seen}, the server at ${seenByServer}`);
 }
 const idle = positions(b).get("player_1");
-if (!idle || distance(idle, SPAWN_B) > TOLERANCE) fail(`player_1 should be at its spawn ${SPAWN_B}, client b sees ${idle}`);
+if (!idle || distance(idle, PLACE_B) > TOLERANCE) fail(`player_1 should be at ${PLACE_B}, client b sees ${idle}`);
 const states = JSON.stringify(statesOfA(server));
 if (!states.includes("movement.state")) fail(`the server printed no movement state: ${states}`);
 for (const p of [a, b]) {

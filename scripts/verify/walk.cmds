@@ -1,5 +1,5 @@
 # One player walks around the arena with real keys and mouse movement: walls stop it and the camera,
-# it climbs the stairs, jumps onto the high platform and dashes. Run from the repository root.
+# it climbs the stairs without leaving the ground, jumps onto the high platform and dashes. Run from the repository root.
 spawn.solo 0
 assert.spawn_count 1
 wait 20
@@ -28,7 +28,12 @@ wait 60
 assert.movement_speed 0 9 0.05
 snapshot walk_sprint
 # Run on up the stairs onto the 1 m platform.
-wait 190
+wait 150
+# Half way up the stairs, still on the ground.
+assert.movement_grounded 0 true
+assert.movement_near 0 -0.5 0.5 -5 1.5
+snapshot walk_stairs
+wait 37
 input.key_up W
 input.key_up ShiftLeft
 wait 40
@@ -58,5 +63,5 @@ input.key_up ControlLeft
 wait 100
 assert.movement_grounded 0 true
 state.hash
-assert.state_hash 0x7da49d993fdf7938
+assert.state_hash 0xaa68a8819489adc5
 quit

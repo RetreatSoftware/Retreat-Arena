@@ -10,7 +10,7 @@ use retreat_engine::net::link::LinkConditions;
 use retreat_engine::{InputActionsPlugin, PhysicsPlugin, RetreatCommandsPlugin, StateHashPlugin};
 use retreat_engine_api::{AnalogInput, run_command_line};
 use retreat_gameplay_api::{
-    Health, LookAngles, MatchPhase, MatchState, PlayerId, Scoreboard, character_feet,
+    Health, LookAngles, MatchPhase, MatchState, PlayerId, Scoreboard, SpawnPoints, character_feet,
 };
 use retreat_module_character_movement::{ADVANCE_AXIS, MovementState, STRAFE_AXIS};
 
@@ -260,4 +260,45 @@ fn walking_alone_on_a_good_link_needs_no_corrections() {
     hold(&mut harness, 0, ADVANCE_AXIS, 0.0);
     harness.run_idle(100);
     assert_eq!(corrections(&harness)[0], before);
+}
+
+#[test]
+fn a_dead_character_respawns_at_a_spawn_point_and_walks_again_on_every_machine() {
+    let mut harness = harness();
+    let spawns = harness
+        .server_app
+        .world()
+        .resource::<SpawnPoints>()
+        .0
+        .clone();
+    hold(&mut harness, 0, ADVANCE_AXIS, 1.0);
+    harness.run_idle(150);
+    let away = character(&mut harness.server_app, 0).0;
+    hold(&mut harness, 0, ADVANCE_AXIS, 0.0);
+    harness.run_idle(100);
+    on_server(&mut harness, "health.kill 0");
+    harness.run_idle(300);
+    on_server(&mut harness, "assert.health 0 100");
+    let (back, state, _) = character(&mut harness.server_app, 0);
+    assert!(back.distance(away) > 5.0, "moved from {away} to {back}");
+    assert!(
+        spawns.iter().any(|spawn| spawn.feet.distance(back) < 0.1),
+        "{back} is not a spawn point"
+    );
+    assert!(state.grounded, "{state:?}");
+    for (index, client) in harness.client_apps.iter_mut().enumerate() {
+        let seen = character(client, 0).0;
+        assert!(seen.distance(back) < 0.05, "client {index} sees {seen}");
+    }
+    // It moves again, and everyone still agrees.
+    hold(&mut harness, 0, ADVANCE_AXIS, 1.0);
+    harness.run_idle(60);
+    hold(&mut harness, 0, ADVANCE_AXIS, 0.0);
+    harness.run_idle(200);
+    let walked = character(&mut harness.server_app, 0).0;
+    assert!(walked.distance(back) > 3.0, "from {back} to {walked}");
+    for (index, client) in harness.client_apps.iter_mut().enumerate() {
+        let seen = character(client, 0).0;
+        assert!(seen.distance(walked) < 0.05, "client {index} sees {seen}");
+    }
 }

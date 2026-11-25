@@ -6,8 +6,12 @@ use retreat_engine::net::client::NetClient;
 use retreat_engine::net::server::NetServer;
 use retreat_engine::{CommandScript, dispatch_command_line};
 use retreat_engine_api::GameCamera;
+use retreat_gameplay_api::MAX_PLAYERS;
 use retreat_module_arena::ArenaModulePlugin;
 use retreat_module_character_movement::CharacterMovementModulePlugin;
+use retreat_module_character_visuals::{
+    CharacterModel, CharacterVisualsConfig, CharacterVisualsModulePlugin, Clip,
+};
 use retreat_module_health::HealthModulePlugin;
 use retreat_module_match::MatchModulePlugin;
 use retreat_module_player_spawn::PlayerSpawnModulePlugin;
@@ -29,14 +33,65 @@ const SUN_ILLUMINANCE: f32 = 8_000.0;
 /// light: the browser (WebGL2) draws only one.
 const AMBIENT_BRIGHTNESS: f32 = 600.0;
 
+/// The sky behind the arena.
+const SKY_COLOR: Color = Color::srgb(0.53, 0.7, 0.86);
+
+/// The character everyone is shown as, until real models exist: the fox (credits in
+/// `assets/CREDITS.md`). The model is about 1.2 m tall at this scale and faces +Z.
+const CHARACTER_MODEL_PATH: &str = "models/Fox.glb";
+const CHARACTER_MODEL_SCALE: f32 = 0.012;
+
+/// One tint per player, `(red, green, blue)` in linear light. The engine multiplies the fox's orange
+/// texture by it, and that texture holds almost no blue, so the blue-ish tints need factors far above
+/// 1. Order: red, blue, green, natural, purple, charcoal, cyan, white.
+const PLAYER_TINTS: [(f32, f32, f32); MAX_PLAYERS] = [
+    (0.9, 0.12, 0.1),
+    (0.08, 0.6, 14.0),
+    (0.12, 1.8, 1.0),
+    (1.0, 1.0, 1.0),
+    (0.35, 0.15, 12.0),
+    (0.04, 0.09, 0.5),
+    (0.08, 2.6, 18.0),
+    (1.3, 3.5, 25.0),
+];
+
+/// How characters look: the fox, one tint per player.
+fn character_visuals() -> CharacterVisualsConfig {
+    let clip = |name: &str, rate: f32, matched_speed: Option<f32>| Clip {
+        name: name.to_string(),
+        rate,
+        matched_speed,
+    };
+    CharacterVisualsConfig {
+        model: Some(CharacterModel {
+            path: CHARACTER_MODEL_PATH.to_string(),
+            scale: CHARACTER_MODEL_SCALE,
+            yaw: std::f32::consts::PI,
+            // The fox has no idle or jump clip: it looks around when standing and holds a slow
+            // running stride in the air.
+            idle: clip("Survey", 1.0, None),
+            walk: clip("Walk", 1.0, Some(3.0)),
+            run: clip("Run", 1.0, Some(7.0)),
+            air: clip("Run", 0.4, None),
+        }),
+        colors: PLAYER_TINTS
+            .map(|(red, green, blue)| Color::linear_rgb(red, green, blue))
+            .to_vec(),
+        ..default()
+    }
+}
+
 /// The module selection plus this game's own setup.
 pub fn add_arena_plugins(app: &mut App) {
-    // Each module's numbers are its config defaults.
+    // Modules not configured here use their config defaults.
+    app.insert_resource(character_visuals())
+        .insert_resource(ClearColor(SKY_COLOR));
     app.add_plugins((
         ArenaModulePlugin,
         PlayerSpawnModulePlugin,
         CharacterMovementModulePlugin,
         ThirdPersonCameraModulePlugin,
+        CharacterVisualsModulePlugin,
         HealthModulePlugin,
         MatchModulePlugin,
     ))

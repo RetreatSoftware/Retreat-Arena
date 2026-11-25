@@ -1,8 +1,9 @@
 # Retreat Arena
 
 A third-person arena shooter built with the [Retreat engine](https://github.com/RetreatSoftware/Retreat-Engine-3D)
-and [Retreat modules](https://github.com/RetreatSoftware/Retreat-Modules). Early stage: characters can
-walk around the arena, alone or over the local network. There are no weapons yet.
+and [Retreat modules](https://github.com/RetreatSoftware/Retreat-Modules). Early stage: foxes in their
+own colors walk around the arena, alone or over the local network. There are no weapons yet. Asset
+credits: [assets/CREDITS.md](assets/CREDITS.md).
 
 All commands are PowerShell, run from this folder.
 
@@ -54,6 +55,14 @@ cargo run -- --headless --commands scripts/verify/walk.cmds
 
 ```powershell
 cargo run -- --headless --commands scripts/verify/arena_map.cmds
+```
+
+```powershell
+cargo run -- --headless --commands scripts/verify/visuals.cmds
+```
+
+```powershell
+cargo run -- --headless --commands scripts/verify/colors.cmds
 ```
 
 ```powershell

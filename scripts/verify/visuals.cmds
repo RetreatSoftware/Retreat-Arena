@@ -1,0 +1,52 @@
+# What players look like: two foxes in their own colors, facing where they move and playing the clip
+# for what they do (idle, walk, run, air). Run from the repository root.
+spawn.solo 0
+spawn.join 1
+physics.teleport player_1 2.5 0.9 21
+wait_until 600 assert.visual_ready player_0
+wait_until 600 assert.visual_ready player_1
+wait 20
+assert.visuals_color 0 0
+assert.visuals_color 1 1
+assert.visuals_state 0 idle
+assert.animation_playing player_0/visual Survey
+# Over the shoulder: the own fox from behind, the other one ahead.
+snapshot visuals_over_shoulder
+# From the side.
+shoulder.stop arena_camera
+camera.set_position arena_camera 9 3 21
+camera.look_at arena_camera 0 0.5 21
+snapshot visuals_two_foxes
+input.key_down W
+wait 30
+assert.visuals_state 0 walk
+assert.visuals_facing 0 0 0.05
+assert.animation_playing player_0/visual Walk
+snapshot visuals_walk
+input.key_down ShiftLeft
+wait 20
+assert.visuals_state 0 run
+assert.animation_playing player_0/visual Run
+snapshot visuals_run
+input.key_down Space
+wait 14
+assert.visuals_state 0 air
+snapshot visuals_air
+input.key_up Space
+input.key_up ShiftLeft
+input.key_up W
+wait 90
+assert.visuals_state 0 idle
+# It keeps the facing it stopped with, then turns to a new direction of movement.
+assert.visuals_facing 0 0 0.05
+# Over the shoulder again, to see it turn.
+shoulder.follow arena_camera
+input.key_down D
+wait 25
+assert.visuals_facing 0 -1.5708 0.1
+snapshot visuals_turned
+input.key_up D
+wait 90
+assert.visuals_state 0 idle
+assert.visuals_facing 0 -1.5708 0.1
+quit

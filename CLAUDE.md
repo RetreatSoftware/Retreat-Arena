@@ -23,7 +23,10 @@ The root `../CLAUDE.md` also applies here.
 ## Layout
 
 - `src/main.rs` calls `retreat_engine::launch`.
-- `src/arena_game.rs`: module selection, `MAP_ID`, camera and lights. A game started with no
+- `assets/`: the game's files, each third-party one credited in `assets/CREDITS.md`. The fox is the
+  character until real models exist.
+- `src/arena_game.rs`: module selection, `MAP_ID`, the character model and its clips, one tint per
+  player (chosen for the fox's orange texture), camera, sky and lights. A game started with no
   script and no network spawns the solo player (id 0). One directional light only: the browser draws
   no second one.
 - `src/net_play_tests.rs`: server and clients in one process (this binary crate has no `tests/`).
@@ -32,7 +35,9 @@ The root `../CLAUDE.md` also applies here.
   `cargo run -- --headless --commands scripts/verify/arena_map.cmds`
 - `scripts/verify/network/`: `node scripts/verify/network/run.mjs [--browser] [--software-renderer]`
   after `cargo build` (and `node scripts/web/build.mjs` for `--browser`). Client A moves, client B
-  renders and watches; B's script holds client A's end position.
+  renders and watches. B turns its view when it is ready and A waits for that; the server puts B's
+  character beside A's path; B's script holds A's end position (`assert.movement_near`).
+  The network runner starts the executable itself and sets `BEVY_ASSET_ROOT`.
 - `scripts/web/`: `build.mjs` (browser build into `target/web/`, page taken from the engine checkout)
   and `run_in_browser.mjs <script>`. CI runs the picture scripts and the network check in the browser;
   `walk.cmds` asserts the same `state.hash` natively and in the browser.
@@ -43,8 +48,9 @@ The root `../CLAUDE.md` also applies here.
 
 ## Status
 
-Arena step 1: characters walk the `graybox` arena (spawning, movement, third-person camera), alone or
-with a server and clients; `health` and `match` are selected with their default numbers. No weapons
-yet (`health.add_dummy` and `health.damage` stand in). A dead player respawns with full health where
-it is: the engine cannot teleport bodies yet. The server needs `--headless --no-render` and uses a
-whole CPU core (the engine runs headless frames back to back).
+Arena steps 1 and 2: animated, colored foxes walk the `graybox` arena (stairs included), alone or
+with a server and clients, other players smoothed; `health` and `match` are selected with their
+default numbers, and a respawn moves the character to a spawn point. No weapons yet
+(`health.add_dummy` and `health.damage` stand in). The server needs `--headless --no-render` and uses
+a whole CPU core (the engine runs headless frames back to back). Against a wall the camera moves so
+close that the own character leaves the picture.

@@ -1,13 +1,16 @@
-# Network check, client A (player 0, the first to join): walks, turns with the mouse and jumps once
+# Network check, client A (player 0, the first to join): walks, turns left with the mouse and jumps once
 # client B is there to see it. Every input travels as a command line per tick and is predicted.
 wait_until 3000 assert.net_joined
 # run.mjs starts client B when it sees this line.
 net.status
 wait_until 60000 assert.spawn_count 2
-wait 128
-input.set_axis movement_advance 1
-wait 96
-input.look 200 0
+# Client B turns its view when it is ready to watch.
+wait_until 60000 assert.movement_look 1 1 0.01
+wait 64
+# At a slow walk, long enough for a slowly rendering watcher to see it walking.
+input.set_axis movement_advance 0.35
+wait 200
+input.look -200 0
 input.key_down Space
 wait 4
 input.key_up Space

@@ -1,0 +1,41 @@
+# Every player's color: eight characters in a row, one tint each (the game's list, in player order).
+# Run from the repository root.
+wait 2
+spawn.join 0
+physics.teleport player_0 -5.6 0.9 22
+spawn.join 1
+physics.teleport player_1 -4.0 0.9 22
+spawn.join 2
+physics.teleport player_2 -2.4 0.9 22
+spawn.join 3
+physics.teleport player_3 -0.8 0.9 22
+spawn.join 4
+physics.teleport player_4 0.8 0.9 22
+spawn.join 5
+physics.teleport player_5 2.4 0.9 22
+spawn.join 6
+physics.teleport player_6 4.0 0.9 22
+spawn.join 7
+physics.teleport player_7 5.6 0.9 22
+wait_until 600 assert.visual_ready player_0
+wait_until 600 assert.visual_ready player_1
+wait_until 600 assert.visual_ready player_2
+wait_until 600 assert.visual_ready player_3
+wait_until 600 assert.visual_ready player_4
+wait_until 600 assert.visual_ready player_5
+wait_until 600 assert.visual_ready player_6
+wait_until 600 assert.visual_ready player_7
+camera.set_position arena_camera 0 4 31
+camera.look_at arena_camera 0 0.5 22
+camera.set_fov arena_camera 55
+wait 30
+assert.visuals_color 0 0
+assert.visuals_color 1 1
+assert.visuals_color 2 2
+assert.visuals_color 3 3
+assert.visuals_color 4 4
+assert.visuals_color 5 5
+assert.visuals_color 6 6
+assert.visuals_color 7 7
+snapshot visuals_colors
+quit

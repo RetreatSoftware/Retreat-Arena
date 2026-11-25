@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Builds the game for the browser into target/web/: the .wasm and its JavaScript, the engine's page
-// (renamed to this game) and scripts/verify/ (so `?commands=` can fetch them).
+// (renamed to this game), assets/ and scripts/verify/ (so `?commands=` can fetch them).
 //
 //   node scripts/web/build.mjs
 //
@@ -29,5 +29,6 @@ for (const [from, to] of [["./retreat_sandbox.js", "./retreat_arena.js"], ["<tit
   page = page.replace(from, to);
 }
 writeFileSync(join(web, "index.html"), page);
+cpSync(join(ARENA_ROOT, "assets"), join(web, "assets"), { recursive: true });
 cpSync(join(ARENA_ROOT, "scripts", "verify"), join(web, "scripts", "verify"), { recursive: true });
 console.log("Built target/web. Serve: python -m http.server 8090 --directory target/web");
