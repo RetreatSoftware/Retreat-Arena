@@ -1,0 +1,23 @@
+# The game loads the graybox arena at startup: pieces exist where the map says, a box placed on the
+# high platform stays on it (the fixed bodies collide), and pictures from above, from an
+# angle and from a spawn point. Run from the repository root.
+assert.entity_exists arena/floor
+assert.entity_exists arena/stair_10
+assert.entity_exists arena/pillar_3
+assert.position arena/platform_high 0 1 -19.5
+snapshot arena_overview
+camera.set_position arena_camera 0 82 6
+camera.look_at arena_camera 0 0 0
+snapshot arena_top
+camera.set_position arena_camera 0 1.6 26
+camera.look_at arena_camera 0 1.2 0
+snapshot arena_spawn_view
+physics.spawn_box crate_1 0 2.5 -19.5 1
+wait 128
+# Placed on the 2 m platform, a 1 m box stays there (center 2.5) for two seconds instead of
+# falling through: the platform is solid.
+assert.position crate_1 0 2.5 -19.5
+camera.set_position arena_camera 12 8 -6
+camera.look_at arena_camera 0 1 -14
+snapshot arena_platforms
+quit

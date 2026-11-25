@@ -1,0 +1,32 @@
+# Retreat Arena: the game app. It only selects modules, chooses the map and holds configuration.
+#
+# Engine and modules are git dependencies on the public repositories; Cargo.lock pins the commits
+# (`cargo update -p retreat_engine` / `-p retreat_module_arena` takes newer ones). The engine's own
+# dependency on its contract crate and the modules' dependency on it resolve to the same checkout,
+# so there is one `CommandRegistry` type and no [patch] is needed.
+
+# Its own workspace: a checkout next to other Retreat folders must not join a parent workspace.
+[workspace]
+
+[package]
+name = "retreat_arena"
+description = "Third-person arena shooter built from Retreat modules."
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+bevy = "0.20.1"
+retreat_engine = { git = "https://github.com/RetreatSoftware/Retreat-Engine-3D" }
+retreat_engine_api = { git = "https://github.com/RetreatSoftware/Retreat-Engine-3D" }
+# Gameplay modules.
+retreat_module_arena = { git = "https://github.com/RetreatSoftware/Retreat-Modules" }
+
+# Same build profiles as the engine: Bevy is slow unoptimized, and full debug info makes target/ huge.
+[profile.dev]
+opt-level = 1
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+opt-level = 3
+debug = false
