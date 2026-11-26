@@ -36,6 +36,8 @@ retreat_module_combat_hud = { git = "https://github.com/RetreatSoftware/Retreat-
 [profile.dev]
 opt-level = 1
 debug = "line-tables-only"
+# No incremental caches: they were a third of `target/` (cargo uses only this workspace's profiles).
+incremental = false
 
 [profile.dev.package."*"]
 opt-level = 3
