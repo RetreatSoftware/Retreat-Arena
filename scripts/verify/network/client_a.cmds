@@ -7,9 +7,11 @@ wait_until 60000 assert.spawn_count 2
 # Client B turns its view when it is ready to watch.
 wait_until 60000 assert.movement_look 1 1 0.01
 wait 64
-# At a slow walk, long enough for a slowly rendering watcher to see it walking.
+# At a slow walk, long enough for a slowly rendering watcher to see it walking (its last picture
+# can still be stalling it when this starts).
+input.set_axis movement_advance 0.2
+wait 350
 input.set_axis movement_advance 0.35
-wait 200
 input.look -200 0
 input.key_down Space
 wait 4
