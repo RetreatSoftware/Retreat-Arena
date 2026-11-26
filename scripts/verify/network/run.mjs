@@ -29,8 +29,11 @@ const PLACE_B = [3, 0.9, 18];
 const processes = [];
 
 function fail(message) {
+  // The errors first: a GitHub annotation keeps only about the first 4000 characters.
+  const errors = processes.flatMap((p) =>
+    p.output.split("\n").filter((line) => /ERROR|panicked|net server:/.test(line)).slice(0, 5).map((line) => `${p.name}: ${line.slice(0, 600)}`));
   const tails = processes.map((p) => `----- ${p.name} (exit ${p.exited}) -----\n${p.output.split("\n").slice(-40).join("\n")}`);
-  const report = `${message}\n${tails.join("\n")}`;
+  const report = `${message}\n${errors.join("\n")}\n${tails.join("\n")}`;
   console.error(`network check: FAIL: ${report}`);
   // A GitHub annotation is readable without the raw log.
   if (process.env.GITHUB_ACTIONS) {

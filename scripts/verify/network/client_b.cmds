@@ -36,13 +36,16 @@ assert.hud_shown hud_crosshair true
 assert.ui_text hud_health Health 100
 assert.ui_text hud_ammo Ammo 30/30
 snapshot net_b_aims
-input.key_down MouseLeft
+# One shot for the hit marker, then held fire. A snapshot can stall a slow renderer for seconds, so
+# none is taken while the fire button is down: client A would die and respawn unseen.
+input.tap MouseLeft
 wait_until 20000 assert.hud_shown hud_hit true
 snapshot net_b_hit
-wait_until 20000 assert.health_dead 0
+input.key_down MouseLeft
+# The hit count stays, so it cannot be missed; it arrives with the death.
+wait_until 20000 assert.rifle_hits 1 5
 input.key_up MouseLeft
 wait_until 2000 assert.visuals_hidden 0 true
-assert.rifle_hits 1 5
 snapshot net_b_killed
 # The respawn, seen from behind the player that came back.
 wait_until 20000 assert.health 0 100
