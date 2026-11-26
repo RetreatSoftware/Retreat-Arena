@@ -23,9 +23,9 @@ const TIMEOUT_MS = 900_000;
 /** How far apart two machines may see a body. */
 const TOLERANCE = 0.05;
 /** Where the server puts player 0 to be shot. */
-const SHOT_A = [-0.15, 0.9, 17.37];
+const SHOT_A = [-0.15, 0.6, 17.37];
 /** Where the server puts player 1, who then stays there. */
-const PLACE_B = [3, 0.9, 18];
+const PLACE_B = [3, 0.6, 18];
 const processes = [];
 
 function fail(message) {

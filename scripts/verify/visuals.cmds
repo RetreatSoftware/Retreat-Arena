@@ -2,7 +2,7 @@
 # for what they do (idle, walk, run, air). Run from the repository root.
 spawn.solo 0
 spawn.join 1
-physics.teleport player_1 2.5 0.9 21
+physics.teleport player_1 2.5 0.6 21
 wait_until 600 assert.visual_ready player_0
 wait_until 600 assert.visual_ready player_1
 wait 20

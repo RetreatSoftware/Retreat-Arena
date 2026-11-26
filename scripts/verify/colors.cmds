@@ -2,21 +2,21 @@
 # Run from the repository root.
 wait 2
 spawn.join 0
-physics.teleport player_0 -5.6 0.9 22
+physics.teleport player_0 -5.6 0.6 22
 spawn.join 1
-physics.teleport player_1 -4.0 0.9 22
+physics.teleport player_1 -4.0 0.6 22
 spawn.join 2
-physics.teleport player_2 -2.4 0.9 22
+physics.teleport player_2 -2.4 0.6 22
 spawn.join 3
-physics.teleport player_3 -0.8 0.9 22
+physics.teleport player_3 -0.8 0.6 22
 spawn.join 4
-physics.teleport player_4 0.8 0.9 22
+physics.teleport player_4 0.8 0.6 22
 spawn.join 5
-physics.teleport player_5 2.4 0.9 22
+physics.teleport player_5 2.4 0.6 22
 spawn.join 6
-physics.teleport player_6 4.0 0.9 22
+physics.teleport player_6 4.0 0.6 22
 spawn.join 7
-physics.teleport player_7 5.6 0.9 22
+physics.teleport player_7 5.6 0.6 22
 wait_until 600 assert.visual_ready player_0
 wait_until 600 assert.visual_ready player_1
 wait_until 600 assert.visual_ready player_2

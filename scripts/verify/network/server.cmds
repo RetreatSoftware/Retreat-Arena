@@ -3,12 +3,13 @@
 wait_until 20000 assert.net_clients 2
 wait_until 20000 assert.spawn_count 2
 # Client B's character is put beside client A's path, so one picture shows both.
-physics.teleport player_1 3 0.9 18
+physics.teleport player_1 3 0.6 18
 # Once client B aims, client A's player is put exactly where it aims.
 wait_until 60000 assert.movement_look 1 1.561 0.01
-physics.teleport player_0 -0.15 0.9 17.37
+physics.teleport player_0 -0.15 0.6 17.37
 wait_until 60000 assert.health_dead 0
-assert.rifle_hits 1 5
+assert.launcher_hits 1 1
+assert.rifle_hits 1 1
 assert.match_score 1 1
 wait_until 2000 assert.health 0 100
 wait_until 60000 assert.spawn_count 1

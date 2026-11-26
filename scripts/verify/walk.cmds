@@ -63,5 +63,5 @@ input.key_up ControlLeft
 wait 100
 assert.movement_grounded 0 true
 state.hash
-assert.state_hash 0x08652cd2370bf2b1
+assert.state_hash 0x21f1e0b25e64bd36
 quit

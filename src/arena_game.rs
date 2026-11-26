@@ -6,7 +6,7 @@ use retreat_engine::net::client::NetClient;
 use retreat_engine::net::server::NetServer;
 use retreat_engine::{CommandScript, dispatch_command_line};
 use retreat_engine_api::GameCamera;
-use retreat_gameplay_api::MAX_PLAYERS;
+use retreat_gameplay_api::{CharacterSize, MAX_PLAYERS};
 use retreat_module_arena::ArenaModulePlugin;
 use retreat_module_character_movement::CharacterMovementModulePlugin;
 use retreat_module_character_visuals::{
@@ -16,6 +16,7 @@ use retreat_module_combat_hud::{CombatHudConfig, CombatHudModulePlugin};
 use retreat_module_health::{HealthConfig, HealthModulePlugin};
 use retreat_module_match::MatchModulePlugin;
 use retreat_module_player_spawn::PlayerSpawnModulePlugin;
+use retreat_module_projectile_launcher::{LauncherConfig, ProjectileLauncherModulePlugin};
 use retreat_module_rifle::{RifleConfig, RifleModulePlugin};
 use retreat_module_third_person_camera::ThirdPersonCameraModulePlugin;
 
@@ -43,6 +44,15 @@ const SKY_COLOR: Color = Color::srgb(0.53, 0.7, 0.86);
 const CHARACTER_MODEL_PATH: &str = "models/Fox.glb";
 const CHARACTER_MODEL_SCALE: f32 = 0.012;
 
+/// The size of every character: the fox's, so a shot that clearly passes above it misses.
+fn character_size() -> CharacterSize {
+    CharacterSize {
+        radius: 0.35,
+        height: 1.2,
+        eye_height: 1.0,
+    }
+}
+
 /// One color per player, in player order: red, blue, green, yellow, purple, orange, cyan, white.
 /// They replace the fox's texture (`flat_colors`), so they show as written.
 const PLAYER_COLORS: [(f32, f32, f32); MAX_PLAYERS] = [
@@ -64,6 +74,23 @@ fn rifle() -> RifleConfig {
         magazine: 30,
         reload_seconds: 1.5,
         range: 100.0,
+    }
+}
+
+/// The rockets' numbers (recorded in CLAUDE.md): a direct hit and one rifle shot kill.
+fn launcher() -> LauncherConfig {
+    LauncherConfig {
+        damage: 80,
+        edge_damage: 20,
+        blast_radius: 3.0,
+        self_damage_percent: 50,
+        speed: 25.0,
+        rocket_radius: 0.15,
+        lifetime_seconds: 4.0,
+        fire_interval_seconds: 0.9,
+        magazine: 4,
+        reload_seconds: 2.0,
+        aim_range: 100.0,
     }
 }
 
@@ -115,8 +142,10 @@ fn character_visuals() -> CharacterVisualsConfig {
 /// The module selection plus this game's own setup.
 pub fn add_arena_plugins(app: &mut App) {
     // Modules not configured here use their config defaults.
-    app.insert_resource(character_visuals())
+    app.insert_resource(character_size())
+        .insert_resource(character_visuals())
         .insert_resource(rifle())
+        .insert_resource(launcher())
         .insert_resource(health())
         .insert_resource(combat_hud())
         .insert_resource(ClearColor(SKY_COLOR));
@@ -129,6 +158,7 @@ pub fn add_arena_plugins(app: &mut App) {
         HealthModulePlugin,
         MatchModulePlugin,
         RifleModulePlugin,
+        ProjectileLauncherModulePlugin,
         CombatHudModulePlugin,
     ))
     .add_systems(

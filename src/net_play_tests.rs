@@ -7,15 +7,19 @@ use bevy::prelude::*;
 use retreat_engine::net::commands::NetCommandsPlugin;
 use retreat_engine::net::harness::{HarnessConfig, NetHarness};
 use retreat_engine::net::link::LinkConditions;
-use retreat_engine::{InputActionsPlugin, PhysicsPlugin, RetreatCommandsPlugin, StateHashPlugin};
+use retreat_engine::{
+    EffectLog, InputActionsPlugin, NetPosePlugin, PhysicsPlugin, RetreatCommandsPlugin,
+    StateHashPlugin, VisualEffectsPlugin,
+};
 use retreat_engine_api::{
     AnalogInput, NetViewTick, RayCast, cast_ray, cast_ray_at, run_command_line,
 };
 use retreat_gameplay_api::{
-    CHARACTER_EYE_HEIGHT, Health, LookAngles, MatchPhase, MatchState, PlayerId, Scoreboard,
-    SpawnPoints, WeaponStatus, character_feet, view_direction,
+    CharacterSize, Health, LookAngles, MatchPhase, MatchState, PlayerId, Scoreboard, SpawnPoints,
+    WeaponKind, WeaponStatus, Weapons, view_direction,
 };
 use retreat_module_character_movement::{ADVANCE_AXIS, MovementState, STRAFE_AXIS};
+use retreat_module_projectile_launcher::Rocket;
 
 fn game_app() -> App {
     let mut app = App::new();
@@ -33,6 +37,8 @@ fn game_app() -> App {
         StateHashPlugin,
         NetCommandsPlugin,
         InputActionsPlugin,
+        NetPosePlugin,
+        VisualEffectsPlugin,
     ));
     add_arena_plugins(&mut app);
     app
@@ -156,11 +162,12 @@ fn predicted_timers_need_no_corrections() {
 /// `(feet position, movement state, view)` of a player on one machine.
 fn character(app: &mut App, id: u32) -> (Vec3, MovementState, LookAngles) {
     let world = app.world_mut();
+    let size = *world.resource::<CharacterSize>();
     let mut query = world.query::<(&PlayerId, &Transform, &MovementState, &LookAngles)>();
     query
         .iter(world)
         .find(|(player, ..)| player.0 == id)
-        .map(|(_, transform, state, look)| (character_feet(transform.translation), *state, *look))
+        .map(|(_, transform, state, look)| (size.feet(transform.translation), *state, *look))
         .unwrap_or_else(|| panic!("no character {id}"))
 }
 
@@ -316,19 +323,23 @@ fn face_off(harness: &mut NetHarness) {
     for (name, feet) in [("player_1", SHOOTER_FEET), ("player_0", TARGET_FEET)] {
         on_server(
             harness,
-            &format!("physics.teleport {name} {} 0.9 {}", feet.x, feet.z),
+            &format!("physics.teleport {name} {} 0.6 {}", feet.x, feet.z),
         );
     }
     harness.run_idle(150);
 }
 
 fn weapon(app: &mut App, id: u32) -> WeaponStatus {
+    carried(app, id, WeaponKind::Rifle)
+}
+
+fn carried(app: &mut App, id: u32, kind: WeaponKind) -> WeaponStatus {
     let world = app.world_mut();
-    let mut query = world.query::<(&PlayerId, &WeaponStatus)>();
+    let mut query = world.query::<(&PlayerId, &Weapons)>();
     query
         .iter(world)
         .find(|(player, _)| player.0 == id)
-        .map(|(_, weapon)| *weapon)
+        .and_then(|(_, weapons)| weapons.of(kind).copied())
         .unwrap_or_else(|| panic!("no weapon {id}"))
 }
 
@@ -351,12 +362,18 @@ fn entity_named(app: &mut App, name: &str) -> Entity {
         .unwrap_or_else(|| panic!("no entity {name}"))
 }
 
+/// Where client or server `app` has the eyes of player `id`.
+fn eye(app: &mut App, id: u32) -> Vec3 {
+    let feet = character(app, id).0;
+    feet + Vec3::Y * app.world().resource::<CharacterSize>().eye_height
+}
+
 /// The yaw (level shots) at which client 1 sees the target at `view_tick`: the middle of the
 /// directions that hit it.
 fn yaw_to_what_client_1_sees(harness: &mut NetHarness, view_tick: f64) -> (f32, f32) {
     let app = &mut harness.client_apps[1];
     let own = entity_named(app, "player_1");
-    let eye = character(app, 1).0 + Vec3::Y * CHARACTER_EYE_HEIGHT;
+    let eye = eye(app, 1);
     let pitch = -0.08;
     let hits: Vec<f32> = (-900..=900)
         .map(|step| step as f32 * 0.001)
@@ -377,7 +394,7 @@ fn yaw_to_what_client_1_sees(harness: &mut NetHarness, view_tick: f64) -> (f32, 
 fn server_hits_now(harness: &mut NetHarness, yaw: f32, pitch: f32) -> bool {
     let app = &mut harness.server_app;
     let own = entity_named(app, "player_1");
-    let eye = character(app, 1).0 + Vec3::Y * CHARACTER_EYE_HEIGHT;
+    let eye = eye(app, 1);
     let cast = RayCast {
         origin: eye,
         direction: view_direction(LookAngles { yaw, pitch }),
@@ -484,4 +501,105 @@ fn holding_fire_kills_and_the_victim_respawns_on_every_machine() {
     }
     assert_clients_agree(&mut harness, "after the respawn");
     assert_eq!(harness.server().stats.refusals(), 0);
+}
+
+/// Every rocket on one machine: `(entity, name, exploded)`.
+fn rockets(app: &mut App) -> Vec<(Entity, String, bool)> {
+    let world = app.world_mut();
+    let mut query = world
+        .query_filtered::<(Entity, &Name, &Rocket), Without<retreat_engine_api::RetiredEntity>>();
+    query
+        .iter(world)
+        .map(|(entity, name, rocket)| (entity, name.to_string(), rocket.exploded > 0))
+        .collect()
+}
+
+fn effects_played(app: &App) -> u64 {
+    app.world().resource::<EffectLog>().played
+}
+
+#[test]
+fn a_rocket_is_predicted_once_and_the_server_decides_its_blast_over_a_lossy_link() {
+    let mut harness = harness_over(
+        LinkConditions {
+            latency_ticks: 8,
+            jitter_ticks: 2,
+            loss: 0.08,
+        },
+        4,
+    );
+    face_off(&mut harness);
+    // Level with the target's middle, 8 m ahead.
+    harness.step(&[(1, vec!["launcher.fire 0 -0.05".to_string()])]);
+    let predicted = rockets(&mut harness.client_apps[1]);
+    assert_eq!(predicted.len(), 1, "the shooter sees its rocket at once");
+    assert!(rockets(&mut harness.server_app).is_empty());
+    let (entity, name, _) = predicted[0].clone();
+    let mut server_had_it = false;
+    for tick in 0..120 {
+        harness.run_idle(1);
+        for (found, found_name, _) in rockets(&mut harness.client_apps[1]) {
+            assert_eq!(
+                (found, found_name),
+                (entity, name.clone()),
+                "tick {tick}: the shooter keeps one rocket"
+            );
+        }
+        for app in [&mut harness.server_app, &mut harness.client_apps[0]] {
+            let seen = rockets(app);
+            assert!(seen.len() <= 1, "tick {tick}: {seen:?}");
+            server_had_it |= !seen.is_empty();
+        }
+    }
+    assert!(server_had_it);
+    for app in [&mut harness.server_app]
+        .into_iter()
+        .chain(&mut harness.client_apps)
+    {
+        assert!(rockets(app).is_empty(), "the exploded rocket is removed");
+        assert_eq!(effects_played(app), 1, "one explosion, replays included");
+        assert_eq!(carried(app, 1, WeaponKind::Launcher).ammo, 3);
+        assert_eq!(carried(app, 1, WeaponKind::Launcher).hits_landed, 1);
+    }
+    assert_eq!(health(&mut harness.server_app, 0), 20);
+    assert_clients_agree(&mut harness, "after the rocket");
+}
+
+#[test]
+fn a_dead_player_is_walked_through_on_every_machine() {
+    let mut harness = harness();
+    face_off(&mut harness);
+    on_server(&mut harness, "health.kill 0");
+    harness.run_idle(30);
+    // The shooter walks north through the body, before it respawns.
+    hold(&mut harness, 1, ADVANCE_AXIS, 1.0);
+    harness.run_idle(100);
+    hold(&mut harness, 1, ADVANCE_AXIS, 0.0);
+    harness.run_idle(40);
+    on_server(&mut harness, "assert.health_dead 0");
+    let walked = character(&mut harness.server_app, 1).0;
+    assert!(walked.z < TARGET_FEET.z - 1.0, "stopped at {walked}");
+    assert!((walked.x - TARGET_FEET.x).abs() < 0.1, "pushed to {walked}");
+    for client in &mut harness.client_apps {
+        assert!(character(client, 1).0.distance(walked) < 0.05);
+    }
+}
+
+#[test]
+fn a_shot_clearly_above_a_fox_misses() {
+    let mut harness = harness();
+    face_off(&mut harness);
+    let app = &mut harness.server_app;
+    let own = entity_named(app, "player_1");
+    let mut hits_at = |height: f32| {
+        let cast = RayCast {
+            origin: SHOOTER_FEET + Vec3::Y * height,
+            direction: Vec3::NEG_Z,
+            max_distance: 20.0,
+            exclude: vec![own],
+        };
+        cast_ray(app.world_mut(), &cast).is_some_and(|hit| hit.name == "player_0")
+    };
+    assert!(hits_at(1.0));
+    assert!(!hits_at(1.35));
 }

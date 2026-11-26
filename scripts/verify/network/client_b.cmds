@@ -24,27 +24,29 @@ wait_until 20000 assert.movement_near 0 -0.15 0 17.37 0.5
 wait_until 2000 assert.visuals_state 0 idle
 wait 64
 # The other player is drawn smoothly, and the picture settles where it is.
-assert.drawn_position player_0 -0.15 0.9 17.37 0.6
+assert.drawn_position player_0 -0.15 0.6 17.37 0.6
 snapshot net_b_sees_a
 # Aims at client A's player with its own camera again (the server puts that player on the spot).
 shoulder.follow arena_camera
 camera.set_fov arena_camera 70
-movement.look 1.561 -0.185
+movement.look 1.561 -0.273
 wait_until 20000 assert.movement_near 0 -0.15 0 17.37 0.05
 wait 64
 assert.hud_shown hud_crosshair true
 assert.ui_text hud_health Health 100
-assert.ui_text hud_ammo Ammo 30/30
+assert.ui_text hud_ammo_rifle Rifle 30/30
+assert.ui_text hud_ammo_launcher Rockets 4/4
 snapshot net_b_aims
-# One shot for the hit marker, then held fire. A snapshot can stall a slow renderer for seconds, so
-# none is taken while the fire button is down: client A would die and respawn unseen.
+# A rocket takes most of player 0's health (and a little of this one's). It flies 3 m, too short
+# to picture reliably here (rockets.cmds shows one in flight). Hit counts stay, so none is missed.
+input.tap MouseRight
+wait_until 20000 assert.launcher_hits 1 1
+# A slowly rendering machine would otherwise picture an earlier frame.
+wait 64
+snapshot net_b_rocket_hit
+# One rifle shot finishes it.
 input.tap MouseLeft
-wait_until 20000 assert.hud_shown hud_hit true
-snapshot net_b_hit
-input.key_down MouseLeft
-# The hit count stays, so it cannot be missed; it arrives with the death.
-wait_until 20000 assert.rifle_hits 1 5
-input.key_up MouseLeft
+wait_until 20000 assert.rifle_hits 1 1
 wait_until 2000 assert.visuals_hidden 0 true
 snapshot net_b_killed
 # The respawn, seen from behind the player that came back.
