@@ -23,6 +23,11 @@ up the winner is shown for eight seconds, then the next match starts. Alone ther
 
 ## Play with a server and two clients
 
+On Windows, double-click `play.bat` (or run `.\play.bat`): it builds, starts the server and two
+client windows, and stops the server when both windows are closed. `-Port 5001` changes the port.
+
+By hand:
+
 1. Server (leave it running). It prints `listening on UDP port 5000 certificate-hash <hash>`; the hash
    changes every start.
 
