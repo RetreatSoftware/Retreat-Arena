@@ -10,6 +10,9 @@ wait 80
 # Clearly above the fox.
 movement.look 0.0859 -0.03
 wait 20
+# The cursor is taken first, as a player's first click does (that click does not shoot).
+input.capture_cursor
+wait 2
 input.tap MouseLeft
 wait 3
 assert.rifle_ammo 0 29

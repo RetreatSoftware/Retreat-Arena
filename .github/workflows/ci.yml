@@ -18,6 +18,8 @@ jobs:
       - name: Install Bevy's Linux system libraries and the lavapipe software Vulkan driver
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libasound2-dev libudev-dev libwayland-dev libxkbcommon-dev mesa-vulkan-drivers
       - uses: Swatinem/rust-cache@v2
+      - name: The committed sounds are what the generator makes
+        run: node scripts/sounds/generate.mjs --check
       - run: cargo fmt --check
       - run: cargo clippy --all-targets -- -D warnings
       - run: cargo test

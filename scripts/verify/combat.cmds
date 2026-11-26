@@ -15,6 +15,9 @@ assert.ui_text hud_ammo_launcher Rockets 4/4
 assert.hud_shown hud_crosshair true
 assert.hud_shown hud_hit false
 snapshot combat_aim
+# The cursor is taken first, as a player's first click does (that click does not shoot).
+input.capture_cursor
+wait 2
 input.key_down MouseLeft
 wait 3
 assert.health 1 80

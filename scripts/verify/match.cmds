@@ -37,6 +37,9 @@ assert.hud_shown hud_crosshair true
 wait_until 300 assert.health 1 100
 # Away from the spawn points, one round used, a rocket high in the air.
 physics.teleport player_0 5 0.6 20
+# The cursor is taken first, as a player's first click does (that click does not shoot).
+input.capture_cursor
+wait 2
 input.tap MouseLeft
 wait 3
 movement.look 0 1.2

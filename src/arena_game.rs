@@ -6,9 +6,9 @@ use retreat_engine::net::client::NetClient;
 use retreat_engine::net::server::NetServer;
 use retreat_engine::{CommandScript, dispatch_command_line};
 use retreat_engine_api::GameCamera;
-use retreat_gameplay_api::{CharacterSize, MAX_PLAYERS, PlayerRoster, RosterEntry};
+use retreat_gameplay_api::{CharacterSize, MAX_PLAYERS, PlayerRoster, RosterEntry, SoundCue};
 use retreat_module_arena::ArenaModulePlugin;
-use retreat_module_character_movement::CharacterMovementModulePlugin;
+use retreat_module_character_movement::{CharacterMovementModulePlugin, MovementConfig};
 use retreat_module_character_visuals::{
     CharacterModel, CharacterVisualsConfig, CharacterVisualsModulePlugin, Clip,
 };
@@ -81,6 +81,22 @@ fn match_rules() -> MatchConfig {
         result_seconds: 8.0,
         points_per_kill: 1,
         points_per_self_kill: -1,
+        start_sound: sound("match_start", 0.45),
+        end_sound: sound("match_end", 0.45),
+    }
+}
+
+/// A sound of `assets/sounds/` (made by `scripts/sounds/generate.mjs`) at `volume`. The volumes
+/// (recorded in CLAUDE.md) keep what repeats quiet and what matters louder.
+fn sound(name: &str, volume: f32) -> Option<SoundCue> {
+    Some(SoundCue::new(&format!("sounds/{name}.wav"), volume))
+}
+
+fn movement() -> MovementConfig {
+    MovementConfig {
+        jump_sound: sound("jump", 0.2),
+        dash_sound: sound("dash", 0.3),
+        ..default()
     }
 }
 
@@ -92,6 +108,8 @@ fn rifle() -> RifleConfig {
         magazine: 30,
         reload_seconds: 1.5,
         range: 100.0,
+        shot_sound: sound("rifle_shot", 0.3),
+        reload_sound: sound("rifle_reload", 0.35),
     }
 }
 
@@ -109,6 +127,9 @@ fn launcher() -> LauncherConfig {
         magazine: 4,
         reload_seconds: 2.0,
         aim_range: 100.0,
+        launch_sound: sound("rocket_launch", 0.45),
+        explosion_sound: sound("explosion", 0.65),
+        reload_sound: sound("rifle_reload", 0.35),
     }
 }
 
@@ -118,6 +139,8 @@ fn health() -> HealthConfig {
         respawn_delay_seconds: 3.0,
         spawn_protection_seconds: 1.0,
         fall_out_height: -10.0,
+        death_sound: sound("death", 0.45),
+        respawn_sound: sound("respawn", 0.3),
     }
 }
 
@@ -131,6 +154,7 @@ fn combat_hud() -> CombatHudConfig {
         kill_feed_seconds: 4.0,
         kill_feed_lines: 4,
         panel: Color::srgba(0.0, 0.0, 0.0, 0.85),
+        hit_sound: sound("hit", 0.35),
     }
 }
 
@@ -169,6 +193,7 @@ pub fn add_arena_plugins(app: &mut App) {
         .insert_resource(combat_hud())
         .insert_resource(match_rules())
         .insert_resource(player_roster())
+        .insert_resource(movement())
         .insert_resource(ClearColor(SKY_COLOR));
     app.add_plugins((
         ArenaModulePlugin,
@@ -270,6 +295,34 @@ mod tests {
             world.resource::<SoloPlayer>().0,
             Some(PlayerId(SOLO_PLAYER_ID))
         );
+    }
+
+    #[test]
+    fn every_sound_the_game_names_is_in_its_assets() {
+        let (rifle, launcher, health) = (rifle(), launcher(), health());
+        let (hud, rules, movement) = (combat_hud(), match_rules(), movement());
+        let cues = [
+            rifle.shot_sound,
+            rifle.reload_sound,
+            launcher.launch_sound,
+            launcher.explosion_sound,
+            launcher.reload_sound,
+            health.death_sound,
+            health.respawn_sound,
+            hud.hit_sound,
+            rules.start_sound,
+            rules.end_sound,
+            movement.jump_sound,
+            movement.dash_sound,
+        ];
+        for cue in cues {
+            let cue = cue.expect("the game gives every sound a cue");
+            let file = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("assets")
+                .join(&cue.path);
+            assert!(file.is_file(), "{} does not exist", file.display());
+            assert_eq!(cue.validate(), Ok(()));
+        }
     }
 
     #[test]

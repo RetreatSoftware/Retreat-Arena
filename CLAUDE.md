@@ -30,6 +30,10 @@ The root `../CLAUDE.md` also applies here.
   script and no network spawns the solo player (id 0). One directional light only: the browser draws
   no second one.
 - `src/net_play_tests.rs`: server and clients in one process (this binary crate has no `tests/`).
+  **Arena preset check** (decided 2026-11-26): `arena_preset_full_match` (a whole 180 s match over a
+  lossy link, deterministic) together with the real-process network check is what proves the arena
+  module set playable.
+- `scripts/sounds/generate.mjs` makes `assets/sounds/*.wav`; CI runs it with `--check`.
 - `scripts/verify/*.cmds`: one script per check that writes pictures. Run from the repository root and
   open every PNG in `target/snapshots/`:
   `cargo run -- --headless --commands scripts/verify/arena_map.cmds`
@@ -63,11 +67,13 @@ The root `../CLAUDE.md` also applies here.
 | Health | 100, respawn after 3 s, 1 s spawn protection (ends on firing), die below -10 m |
 | Character size (decided 2026-11-26) | the fox: radius 0.35 m, height 1.2 m, eyes 1.0 m |
 | HUD | hit marker 0.2 s, text size 28, crosshair 24 px |
+| Sound volumes (decided 2026-11-26, not judged by ear) | shot 0.3, reload 0.35, rocket 0.45, explosion 0.65, hit 0.35, death 0.45, respawn 0.3, jump 0.2, dash 0.3, match start and end 0.45 |
 
 ## Status
 
-Arena steps 1 to 6 (play-lan.bat serves the browser game to the local network): animated, colored foxes walk the `graybox` arena (stairs included) and fight timed
-free-for-all matches with a rifle (left mouse) and rockets (right mouse), alone or with a server and
-clients. The server decides hits, deaths, scores and the match. The HUD shows health, ammo, the clock,
-the kill feed, the scoreboard (Tab, and at the end) and the winner; the next match starts by itself.
-No sounds yet. The server needs `--headless --no-render`.
+Arena steps 1 to 7, the planned game is complete: animated, colored foxes walk the `graybox` arena and
+fight timed free-for-all matches with a rifle and rockets, alone, on one computer or from browsers on
+the local network (`play-lan.bat`). The server decides hits, deaths, scores and the match; the HUD
+shows health, ammo, clock, kill feed, scoreboard and winner; weapons, hits, deaths, movement and the
+match are heard. The server needs `--headless --no-render`. Not tried by hand or ear, or from a
+second device.

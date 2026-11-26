@@ -1,0 +1,42 @@
+# What the game sounds like, as far as a script can hear: every sound is an entity while it plays
+# (output is muted under scripts; run the game to listen). Run from the repository root.
+spawn.solo 0
+spawn.join 1
+physics.teleport player_1 0 0.6 19
+wait 80
+input.capture_cursor
+wait 2
+movement.look 0.0859 -0.128
+wait 20
+input.tap MouseLeft
+wait 3
+assert.audio_playing sound/rifle/0/1
+assert.audio_playing sound/hud/hit/1
+input.tap R
+wait 3
+assert.audio_playing sound/rifle/0/reload/1
+wait 120
+input.tap MouseRight
+wait 3
+assert.audio_playing sound/rocket/local/local/0/launch
+wait_until 100 assert.audio_playing sound/rocket/local/local/0/boom
+wait_until 100 assert.health_dead 1
+wait 3
+assert.audio_playing sound/death/1/0
+wait_until 300 assert.audio_playing sound/respawn/1/1
+input.key_down Space
+wait 4
+assert.audio_playing sound/move/0/jump/1
+input.key_up Space
+wait 100
+input.key_down ControlLeft
+wait 4
+assert.audio_playing sound/move/0/dash/1
+input.key_up ControlLeft
+match.end
+wait 3
+assert.audio_playing sound/match/0/end
+match.restart
+wait 3
+assert.audio_playing sound/match/1/start
+quit

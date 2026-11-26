@@ -1,11 +1,26 @@
 # Retreat Arena
 
 A third-person arena shooter built with the [Retreat engine](https://github.com/RetreatSoftware/Retreat-Engine-3D)
-and [Retreat modules](https://github.com/RetreatSoftware/Retreat-Modules). Early stage: foxes in their
-own colors walk around the arena and shoot each other with a rifle and rockets, alone or over the local network. Asset
-credits: [assets/CREDITS.md](assets/CREDITS.md).
+and [Retreat modules](https://github.com/RetreatSoftware/Retreat-Modules): two to eight foxes in their
+own colors fight timed free-for-all matches with a rifle and rockets, with sound, on one computer or
+over the local network. Asset credits: [assets/CREDITS.md](assets/CREDITS.md).
 
 All commands are PowerShell, run from this folder.
+
+## How to play
+
+| | |
+|---|---|
+| Mouse | look (the first click takes the mouse, Escape releases it) |
+| W A S D | move; Shift sprint, Space jump, Ctrl dash |
+| Left mouse (hold) | rifle |
+| Right mouse (hold) | rockets (they fly, so aim ahead of someone running) |
+| R | reload |
+| Q | swap shoulder |
+| Tab (hold) | scoreboard |
+
+Five rifle hits kill, or one direct rocket and one rifle hit; you come back after 3 seconds. A match
+lasts three minutes; the winner is shown for eight seconds, then the next match starts.
 
 ## Play alone
 
@@ -13,13 +28,15 @@ All commands are PowerShell, run from this folder.
 cargo run
 ```
 
-Click to turn with the mouse, Escape to release it. W A S D move, Shift sprints, Space jumps, Ctrl
-dashes, Q swaps shoulder. Hold the left mouse button to shoot the rifle, the right one to fire
-rockets; R reloads both. Five rifle hits kill, or one direct rocket and one rifle hit; you come
-back after 3 seconds. Rockets fly, so aim ahead of someone running.
+There is nobody to shoot at: it is for looking around.
 
-A match lasts three minutes; the clock is at the top. Hold Tab for the scoreboard. When the time is
-up the winner is shown for eight seconds, then the next match starts. Alone there is nobody to shoot at.
+## Play on this computer (a server and two windows)
+
+```powershell
+.\play.bat
+```
+
+Closing both windows stops the server.
 
 ## Play on the local network (browsers)
 
@@ -46,31 +63,25 @@ If the printed address is wrong (a VPN), pass the computer's address:
 .\play-lan.bat -LanAddress 192.168.1.20
 ```
 
-## Play with a server and two clients
+## Start the parts by hand
 
-On Windows, double-click `play.bat` (or run `.\play.bat`): it builds, starts the server and two
-client windows, and stops the server when both windows are closed. `-Port 5001` changes the port.
-
-By hand:
-
-1. Server (leave it running). It prints `listening on UDP port 5000 certificate-hash <hash>`; the hash
-   changes every start.
+1. Server (leave it running). It prints `listening on UDP port 5000 certificate-hash <hash>`; the
+   hash changes every start.
 
 ```powershell
 cargo run -- --headless --no-render --server 5000
 ```
 
-2. First player, in a second terminal (replace `HASH`):
+2. Each player, in another terminal (replace `HASH`):
 
 ```powershell
 cargo run -- --connect https://127.0.0.1:5000 --cert-hash HASH
 ```
 
-3. Second player: the same command in a third terminal (a browser player uses `play-lan.bat`).
-
 ## Checks
 
-Pictures are written to `target/snapshots/` (browser: `target/snapshots/web/`).
+Pictures are written to `target/snapshots/` (browser: `target/snapshots/web/`). `cargo test`
+includes the preset check `arena_preset_full_match`: a whole match over a lossy link.
 
 ```powershell
 cargo run -- --headless --commands scripts/verify/walk.cmds
@@ -102,6 +113,10 @@ cargo run -- --headless --commands scripts/verify/rockets.cmds
 
 ```powershell
 cargo run -- --headless --commands scripts/verify/match.cmds
+```
+
+```powershell
+cargo run -- --headless --no-render --commands scripts/verify/sounds.cmds
 ```
 
 ```powershell

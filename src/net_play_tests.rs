@@ -12,14 +12,15 @@ use retreat_engine::{
     StateHashPlugin, VisualEffectsPlugin,
 };
 use retreat_engine_api::{
-    AnalogInput, NetViewTick, RayCast, cast_ray, cast_ray_at, run_command_line,
+    AnalogInput, NetViewTick, RayCast, SoundEvents, cast_ray, cast_ray_at, run_command_line,
 };
 use retreat_gameplay_api::{
     CharacterSize, Health, KillLog, LookAngles, MatchPhase, MatchState, PlayerId, Scoreboard,
     SpawnPoints, WeaponKind, WeaponStatus, Weapons, view_direction,
 };
 use retreat_module_character_movement::{ADVANCE_AXIS, MovementState, STRAFE_AXIS};
-use retreat_module_projectile_launcher::Rocket;
+use retreat_module_projectile_launcher::{Rocket, blast_look};
+use std::collections::BTreeSet;
 
 fn game_app() -> App {
     let mut app = App::new();
@@ -453,6 +454,9 @@ fn a_shot_at_a_running_target_hits_what_the_shooter_saw_over_a_lossy_link() {
 }
 
 fn hold_fire(harness: &mut NetHarness, down: bool) {
+    // The cursor is taken before the first shot (the click that takes it does not shoot).
+    run_command_line(harness.client_apps[1].world_mut(), "input.capture_cursor").expect("a client");
+    harness.run_idle(2);
     let mut buttons = harness.client_apps[1]
         .world_mut()
         .resource_mut::<ButtonInput<MouseButton>>();
@@ -557,7 +561,12 @@ fn a_rocket_is_predicted_once_and_the_server_decides_its_blast_over_a_lossy_link
         .chain(&mut harness.client_apps)
     {
         assert!(rockets(app).is_empty(), "the exploded rocket is removed");
-        assert_eq!(effects_played(app), 1, "one explosion, replays included");
+        let parts = blast_look(3.0).len() as u64;
+        assert_eq!(
+            effects_played(app),
+            parts,
+            "one explosion, replays included"
+        );
         assert_eq!(carried(app, 1, WeaponKind::Launcher).ammo, 3);
         assert_eq!(carried(app, 1, WeaponKind::Launcher).hits_landed, 1);
     }
@@ -679,4 +688,112 @@ fn a_restart_with_a_rocket_in_flight_resets_everything_over_a_lossy_link() {
         }
     }
     assert_clients_agree(&mut harness, "after the restart");
+}
+
+/// The ids of every sound a client asked for, with the ticks' repeats folded together.
+fn sounds_asked(app: &App) -> BTreeSet<String> {
+    let events = app.world().resource::<SoundEvents>();
+    events
+        .requests
+        .iter()
+        .map(|event| event.id.clone())
+        .collect()
+}
+
+fn on_client(harness: &mut NetHarness, client: usize, line: &str) {
+    run_command_line(harness.client_apps[client].world_mut(), line)
+        .unwrap_or_else(|error| panic!("client {client}: `{line}` failed: {error}"));
+}
+
+/// Runs until the server's player `id` has `health`, at most `most` ticks.
+fn run_until_health(harness: &mut NetHarness, id: u32, wanted: u32, most: u64) {
+    for _ in 0..most {
+        if health(&mut harness.server_app, id) == wanted {
+            return;
+        }
+        harness.run_idle(1);
+    }
+    panic!(
+        "player {id} has {} health after {most} ticks, not {wanted}",
+        health(&mut harness.server_app, id)
+    );
+}
+
+/// The arena preset check: a whole match of the game's own length, played over a lossy link, from
+/// joining to the next match. Deterministic: the harness steps server and clients tick by tick.
+#[test]
+fn arena_preset_full_match() {
+    let mut harness = harness();
+    on_server(&mut harness, "assert.match_running");
+    // Both walk, jump and dash.
+    walk_around(&mut harness);
+    face_off(&mut harness);
+    let camera = entity_named(&mut harness.client_apps[1], "arena_camera");
+    harness.client_apps[1].world_mut().despawn(camera);
+    // A rifle kill by holding the button.
+    on_client(&mut harness, 1, "movement.look 0 -0.05");
+    harness.run_idle(30);
+    hold_fire(&mut harness, true);
+    run_until_health(&mut harness, 0, 0, 300);
+    hold_fire(&mut harness, false);
+    run_until_health(&mut harness, 0, 100, 300);
+    // A rocket kill: two direct hits.
+    face_off(&mut harness);
+    on_client(&mut harness, 1, "movement.look 0 -0.05");
+    harness.run_idle(30);
+    for left in [20, 0] {
+        harness.step(&[(1, vec!["launcher.fire 0 -0.05".to_string()])]);
+        run_until_health(&mut harness, 0, left, 200);
+        harness.run_idle(60);
+    }
+    run_until_health(&mut harness, 0, 100, 300);
+    assert_clients_agree(&mut harness, "after both kills");
+    on_server(&mut harness, "assert.match_score 1 2");
+    // The rest of the match, on its own clock.
+    let mut ticks = 0;
+    while !gameplay(&mut harness.server_app).2[0] {
+        harness.run_idle(64);
+        ticks += 64;
+        assert!(ticks <= 180 * 64, "the match did not end after its length");
+    }
+    harness.run_idle(100);
+    on_server(&mut harness, "assert.match_winner 1");
+    assert_clients_agree(&mut harness, "at the end");
+    for client in 0..2 {
+        // The result and the scoreboard are on screen.
+        harness.client_apps[client].world_mut().run_schedule(Update);
+        for line in [
+            "assert.match_winner 1",
+            "assert.hud_text hud_match_banner Blue wins",
+            "assert.hud_shown hud_match_score_row1 true",
+        ] {
+            on_client(&mut harness, client, line);
+        }
+    }
+    harness.run_idle(8 * 64);
+    on_server(&mut harness, "assert.match_running");
+    on_server(&mut harness, "assert.match_score 1 0");
+    on_server(&mut harness, "assert.health 0 100");
+    assert_clients_agree(&mut harness, "in the next match");
+    assert_eq!(harness.server().stats.refusals(), 0);
+    // Everything that happened was heard on a client, the other player's sounds included.
+    let heard = sounds_asked(&harness.client_apps[0]);
+    for start in [
+        "rifle/1/1",
+        "rocket/1/",
+        "death/0/0",
+        "respawn/0/1",
+        "move/0/jump/1",
+        "move/0/dash/1",
+        "match/0/end",
+        "match/1/start",
+    ] {
+        assert!(
+            heard.iter().any(|id| id.starts_with(start)),
+            "no sound `{start}..` among {heard:?}"
+        );
+    }
+    let own = sounds_asked(&harness.client_apps[1]);
+    assert!(own.iter().any(|id| id.starts_with("hud/hit/")), "{own:?}");
+    assert!(own.iter().any(|id| id.ends_with("/boom")), "{own:?}");
 }

@@ -14,3 +14,9 @@ https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/Fox
 - Conversion to glTF: @AsoboStudio and @scurest, 2017, CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
 
 Unmodified file (the same one the engine sandbox uses). The game tints it with each player's color.
+
+## sounds/*.wav
+
+Made for this game by `scripts/sounds/generate.mjs` (sine waves and seeded noise; nothing recorded
+or downloaded). No third-party rights; no credit required. Change a sound in the script and run it
+again; CI checks that the files match.
