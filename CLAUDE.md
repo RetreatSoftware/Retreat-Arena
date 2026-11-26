@@ -33,13 +33,16 @@ The root `../CLAUDE.md` also applies here.
 - `scripts/verify/*.cmds`: one script per check that writes pictures. Run from the repository root and
   open every PNG in `target/snapshots/`:
   `cargo run -- --headless --commands scripts/verify/arena_map.cmds`
-- `scripts/verify/network/`: `node scripts/verify/network/run.mjs [--browser] [--software-renderer]`
-  after `cargo build` (and `node scripts/web/build.mjs` for `--browser`). Client A moves, client B
+- `scripts/verify/network/`: `node scripts/verify/network/run.mjs [--browser | --served-page] [--software-renderer]`
+  after `cargo build` (and `node scripts/web/build.mjs` for the browser; CI uses `--served-page`). Client A moves, client B
   renders, watches, hits A with a rocket, kills it with a rifle shot and sees the respawn. Then client C joins the running match and everyone sees the result and the restart. Scripts set the match clock with `match.set_clock`. B turns its view when it is ready and A waits
   for that; the server puts B's character beside A's path and, once B aims (the yaw is the signal),
   puts A on the spot B aims at; B's script holds that spot (`assert.movement_near`).
   The network runner starts the executable itself and sets `BEVY_ASSET_ROOT`.
-- `scripts/web/`: `build.mjs` (browser build into `target/web/`, page taken from the engine checkout)
+- `play.bat` (`scripts/play.ps1`): a local server and two client windows. `play-lan.bat`
+  (`scripts/play-lan.ps1`, decided 2026-11-26): web build, then a server that serves it to the local
+  network over HTTPS (`--serve-web`, engine capability).
+- `scripts/web/`: `build.mjs` (browser build into `target/web/` by the engine's `build_web.mjs`)
   and `run_in_browser.mjs <script>`. CI runs the picture scripts and the network check in the browser;
   `walk.cmds` asserts the same `state.hash` natively and in the browser.
 - `scripts/verify/simulation/*.cmds`: checks with nothing to see (rules and timers). Run with
@@ -56,13 +59,14 @@ The root `../CLAUDE.md` also applies here.
 | Match (decided 2026-11-26) | 180 s, result shown 8 s; 1 point a kill, -1 for a self-kill or a fall |
 | Players | named by color: Red, Blue, Green, Yellow, Purple, Orange, Cyan, White |
 | Scoreboard and kill feed | text size 22; a death stays 4 s, at most 4 |
+| HUD looks (decided 2026-11-26) | black panel at 0.85 behind text; player lines in the player's color |
 | Health | 100, respawn after 3 s, 1 s spawn protection (ends on firing), die below -10 m |
 | Character size (decided 2026-11-26) | the fox: radius 0.35 m, height 1.2 m, eyes 1.0 m |
 | HUD | hit marker 0.2 s, text size 28, crosshair 24 px |
 
 ## Status
 
-Arena steps 1 to 5: animated, colored foxes walk the `graybox` arena (stairs included) and fight timed
+Arena steps 1 to 6 (play-lan.bat serves the browser game to the local network): animated, colored foxes walk the `graybox` arena (stairs included) and fight timed
 free-for-all matches with a rifle (left mouse) and rockets (right mouse), alone or with a server and
 clients. The server decides hits, deaths, scores and the match. The HUD shows health, ammo, the clock,
 the kill feed, the scoreboard (Tab, and at the end) and the winner; the next match starts by itself.

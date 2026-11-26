@@ -6,7 +6,7 @@ use retreat_engine::net::client::NetClient;
 use retreat_engine::net::server::NetServer;
 use retreat_engine::{CommandScript, dispatch_command_line};
 use retreat_engine_api::GameCamera;
-use retreat_gameplay_api::{CharacterSize, MAX_PLAYERS, PlayerNames};
+use retreat_gameplay_api::{CharacterSize, MAX_PLAYERS, PlayerRoster, RosterEntry};
 use retreat_module_arena::ArenaModulePlugin;
 use retreat_module_character_movement::CharacterMovementModulePlugin;
 use retreat_module_character_visuals::{
@@ -54,7 +54,7 @@ fn character_size() -> CharacterSize {
 }
 
 /// Name and color of every player, in player order. The colors replace the fox's texture
-/// (`flat_colors`), so they show as written; the names are how the HUD calls players.
+/// (`flat_colors`), so they show as written; the HUD calls and colors players the same way.
 const PLAYERS: [(&str, (f32, f32, f32)); MAX_PLAYERS] = [
     ("Red", (0.85, 0.12, 0.1)),
     ("Blue", (0.12, 0.35, 0.95)),
@@ -66,8 +66,12 @@ const PLAYERS: [(&str, (f32, f32, f32)); MAX_PLAYERS] = [
     ("White", (0.92, 0.92, 0.92)),
 ];
 
-fn player_names() -> PlayerNames {
-    PlayerNames(PLAYERS.map(|(name, _)| name.to_string()).to_vec())
+fn player_roster() -> PlayerRoster {
+    PlayerRoster(
+        PLAYERS
+            .map(|(name, (red, green, blue))| RosterEntry::new(name, Color::srgb(red, green, blue)))
+            .to_vec(),
+    )
 }
 
 /// The match (recorded in CLAUDE.md): three minutes, then the result for eight seconds.
@@ -126,6 +130,7 @@ fn combat_hud() -> CombatHudConfig {
         scoreboard_font_size: 22.0,
         kill_feed_seconds: 4.0,
         kill_feed_lines: 4,
+        panel: Color::srgba(0.0, 0.0, 0.0, 0.85),
     }
 }
 
@@ -148,9 +153,6 @@ fn character_visuals() -> CharacterVisualsConfig {
             run: clip("Run", 1.0, Some(7.0)),
             air: clip("Run", 0.4, None),
         }),
-        colors: PLAYERS
-            .map(|(_, (red, green, blue))| Color::srgb(red, green, blue))
-            .to_vec(),
         flat_colors: true,
         ..default()
     }
@@ -166,7 +168,7 @@ pub fn add_arena_plugins(app: &mut App) {
         .insert_resource(health())
         .insert_resource(combat_hud())
         .insert_resource(match_rules())
-        .insert_resource(player_names())
+        .insert_resource(player_roster())
         .insert_resource(ClearColor(SKY_COLOR));
     app.add_plugins((
         ArenaModulePlugin,

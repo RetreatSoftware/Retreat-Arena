@@ -5,6 +5,9 @@
 //   cargo build
 //   node scripts/verify/network/run.mjs [--software-renderer]
 //   node scripts/web/build.mjs; node scripts/verify/network/run.mjs --browser   (client B in headless Chrome)
+// --served-page (implies --browser) is the LAN game of play-lan.bat: the server also serves the web
+// build over HTTPS (--serve-web) and client B opens that page at the network address the server prints,
+// passes the certificate warning and joins by what the page is offered (no `connect` in its URL).
 //
 // Then client C joins the running match, the match ends with B as the winner and restarts.
 // Passes when every process exits 0, A came back away from where it was shot, the restart moved B
@@ -18,7 +21,8 @@ import { fileURLToPath } from "node:url";
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, "..", "..", "..");
 const exe = join(root, "target", "debug", process.platform === "win32" ? "retreat_arena.exe" : "retreat_arena");
-const browser = process.argv.includes("--browser");
+const servedPage = process.argv.includes("--served-page");
+const browser = servedPage || process.argv.includes("--browser");
 const softwareRenderer = process.argv.includes("--software-renderer") ? ["--software-renderer"] : [];
 const TIMEOUT_MS = 900_000;
 /** Where the server puts player 1, until the match restarts. */
@@ -81,8 +85,16 @@ const distance = (a, b) => Math.hypot(...a.map((value, axis) => value - b[axis])
 
 if (!existsSync(exe)) fail(`${exe} does not exist; run \`cargo build\` first`);
 const script = (name) => `scripts/verify/network/${name}.cmds`;
-const server = start("server", exe, ["--headless", "--no-render", "--real-time", "--server", "0", "--commands", script("server")]);
+const web = servedPage ? ["--serve-web", join("target", "web"), "--web-port", "0"] : [];
+const server = start("server", exe, ["--headless", "--no-render", "--real-time", "--server", "0", ...web, "--commands", script("server")]);
 const listening = await waitFor("the server to listen", () => server.output.match(/listening on UDP port (\d+) certificate-hash ([0-9a-f]{64})/));
+let page;
+if (servedPage) {
+  // The network address when the machine has one, else this machine's own name (printed after it).
+  await waitFor("the server to serve the page", () => server.output.includes("retreat-web: on this computer:"));
+  page = (server.output.match(/retreat-web: players on this network open (\S+)/) ?? server.output.match(/retreat-web: on this computer: (\S+)/))[1];
+  console.log(`network check: client b opens ${page}`);
+}
 const url = `https://127.0.0.1:${listening[1]}`;
 const connect = ["--connect", url, "--cert-hash", listening[2]];
 const a = start("client a", exe, ["--headless", "--no-render", "--real-time", ...connect, "--commands", script("client_a")]);
@@ -92,7 +104,9 @@ const b = browser
       join(root, "scripts", "web", "run_in_browser.mjs"),
       script("client_b"),
       "--timeout", String(TIMEOUT_MS / 1000),
-      "--query", `connect=${encodeURIComponent(url)}&cert_hash=${listening[2]}&real_time=1`,
+      ...(servedPage
+        ? ["--url", page, "--query", "real_time=1"]
+        : ["--query", `connect=${encodeURIComponent(url)}&cert_hash=${listening[2]}&real_time=1`]),
     ])
   : start("client b", exe, ["--headless", "--real-time", ...softwareRenderer, ...connect, "--commands", script("client_b")]);
 // Client C joins the match that is already running, once the server's script asks for it.

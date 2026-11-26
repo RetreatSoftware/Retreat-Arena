@@ -21,6 +21,31 @@ back after 3 seconds. Rockets fly, so aim ahead of someone running.
 A match lasts three minutes; the clock is at the top. Hold Tab for the scoreboard. When the time is
 up the winner is shown for eight seconds, then the next match starts. Alone there is nobody to shoot at.
 
+## Play on the local network (browsers)
+
+```powershell
+.\play-lan.bat
+```
+
+It builds the web version (the first time takes several minutes; needs Node,
+`rustup target add wasm32-unknown-unknown` and `wasm-bindgen-cli`), then runs the server, which
+serves the game's page. Then:
+
+1. If Windows asks about the firewall, allow the app on **Private networks** (other devices need TCP
+   port 8443 and UDP port 5000).
+2. On each device on the same network, open the address printed after `players on this network open`
+   (for example `https://192.168.1.20:8443/`) in Chrome or Edge. On this computer
+   `https://localhost:8443/` also works.
+3. The browser warns that the certificate is not trusted (the server made it): choose **Advanced**,
+   then **Proceed**. Nothing is installed. The warning comes back after every server restart.
+
+The page joins by itself. Ctrl+C stops the server. After changing the game, run `play-lan.bat` again.
+If the printed address is wrong (a VPN), pass the computer's address:
+
+```powershell
+.\play-lan.bat -LanAddress 192.168.1.20
+```
+
 ## Play with a server and two clients
 
 On Windows, double-click `play.bat` (or run `.\play.bat`): it builds, starts the server and two
@@ -41,19 +66,7 @@ cargo run -- --headless --no-render --server 5000
 cargo run -- --connect https://127.0.0.1:5000 --cert-hash HASH
 ```
 
-3. Second player: the same command in a third terminal, or in the browser (Chrome or Edge). Build once
-   (needs `rustup target add wasm32-unknown-unknown` and `wasm-bindgen-cli`):
-
-```powershell
-node scripts/web/build.mjs
-```
-
-```powershell
-python -m http.server 8090 --directory target/web
-```
-
-Then open `http://localhost:8090/?connect=https://127.0.0.1:5000&cert_hash=HASH`. Without the part
-after `?`, the page plays alone.
+3. Second player: the same command in a third terminal (a browser player uses `play-lan.bat`).
 
 ## Checks
 
@@ -100,5 +113,13 @@ node scripts/verify/network/run.mjs
 ```
 
 ```powershell
+node scripts/web/build.mjs
+```
+
+```powershell
 node scripts/web/run_in_browser.mjs scripts/verify/walk.cmds
+```
+
+```powershell
+node scripts/verify/network/run.mjs --served-page
 ```

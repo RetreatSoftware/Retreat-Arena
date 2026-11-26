@@ -24,6 +24,9 @@ wait 3
 assert.hud_text hud_match_score_head Player Pts K D
 assert.hud_text hud_match_score_row0 > Red 1 1 0
 assert.hud_text hud_match_score_row1 Blue 0 0 1
+# Readable over any scene: the rows share a dark panel.
+assert.ui_panel hud_match_score_head 0 0 0 0.85
+assert.ui_panel hud_match_score_row1 0 0 0 0.85
 assert.hud_shown hud_match_score_row2 false
 assert.hud_shown hud_crosshair false
 snapshot match_scoreboard_held
