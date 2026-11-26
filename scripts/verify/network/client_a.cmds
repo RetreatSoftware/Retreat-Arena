@@ -8,7 +8,18 @@ wait_until 60000 assert.spawn_count 2
 wait_until 60000 assert.movement_look 1 1 0.01
 wait 64
 # At a slow walk, long enough for a slowly rendering watcher to see it walking (its last picture
-# can still be stalling it when this starts).
+# can still be stalling it for many seconds when this starts): first sideways to and fro, which
+# ends where it began, then forward.
+input.set_axis movement_strafe 0.2
+wait 200
+input.set_axis movement_strafe -0.2
+wait 200
+input.set_axis movement_strafe 0.2
+wait 200
+input.set_axis movement_strafe -0.2
+wait 200
+input.clear_axis movement_strafe
+wait 64
 input.set_axis movement_advance 0.2
 wait 350
 input.set_axis movement_advance 0.35

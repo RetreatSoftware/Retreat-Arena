@@ -116,7 +116,7 @@ cargo run -- --headless --commands scripts/verify/match.cmds
 ```
 
 ```powershell
-cargo run -- --headless --no-render --commands scripts/verify/sounds.cmds
+cargo run -- --headless --no-render --commands scripts/verify/simulation/sounds.cmds
 ```
 
 ```powershell
