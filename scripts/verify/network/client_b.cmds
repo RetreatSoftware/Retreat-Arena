@@ -55,6 +55,36 @@ shoulder.follow arena_camera 0
 wait_until 2000 assert.visuals_hidden 0 false
 wait 128
 snapshot net_b_sees_respawn
+# The scoreboard of the running match, on the held button.
+shoulder.follow arena_camera
+input.key_down Tab
+wait 10
+wait_until 20000 assert.hud_text hud_match_score_row0 > Blue 1 1 0
+wait_until 20000 assert.hud_text hud_match_score_row1 Red 0 0 1
+snapshot net_b_scoreboard
+input.key_up Tab
+# Lets the server bring in client C.
+movement.look 2.5 0
+wait_until 60000 assert.spawn_count 3
+movement.look 2 0
+wait_until 60000 assert.match_finished
+wait 64
+wait_until 20000 assert.hud_text hud_match_banner Blue wins
+wait_until 20000 assert.hud_shown hud_match_score_head true
+snapshot net_b_result
+movement.look -2 0
+wait_until 60000 assert.match_running
+wait 64
+assert.match_score 1 0
+assert.health 1 100
+assert.rifle_ammo 1 30
+assert.launcher_ammo 1 4
+wait_until 20000 assert.hud_shown hud_match_banner false
+wait_until 20000 assert.hud_shown hud_match_score_head false
+snapshot net_b_restarted
+# Client C leaves first.
+wait_until 60000 assert.spawn_count 2
+wait 64
 net.bodies
 net.states
 net.stats

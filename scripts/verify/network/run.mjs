@@ -6,8 +6,9 @@
 //   node scripts/verify/network/run.mjs [--software-renderer]
 //   node scripts/web/build.mjs; node scripts/verify/network/run.mjs --browser   (client B in headless Chrome)
 //
-// Passes when every process exits 0, A came back away from where it was shot, B stayed where the server
-// put it, and all three agree on A's character (position and every synced component). Snapshots: target/snapshots/ (browser:
+// Then client C joins the running match, the match ends with B as the winner and restarts.
+// Passes when every process exits 0, A came back away from where it was shot, the restart moved B
+// from where the server had put it, and server, A and B agree on A's character (position and every synced component). Snapshots: target/snapshots/ (browser:
 // target/snapshots/web/).
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
@@ -20,12 +21,12 @@ const exe = join(root, "target", "debug", process.platform === "win32" ? "retrea
 const browser = process.argv.includes("--browser");
 const softwareRenderer = process.argv.includes("--software-renderer") ? ["--software-renderer"] : [];
 const TIMEOUT_MS = 900_000;
+/** Where the server puts player 1, until the match restarts. */
+const PLACE_B = [3, 0.6, 18];
 /** How far apart two machines may see a body. */
 const TOLERANCE = 0.05;
 /** Where the server puts player 0 to be shot. */
 const SHOT_A = [-0.15, 0.6, 17.37];
-/** Where the server puts player 1, who then stays there. */
-const PLACE_B = [3, 0.6, 18];
 const processes = [];
 
 function fail(message) {
@@ -94,6 +95,9 @@ const b = browser
       "--query", `connect=${encodeURIComponent(url)}&cert_hash=${listening[2]}&real_time=1`,
     ])
   : start("client b", exe, ["--headless", "--real-time", ...softwareRenderer, ...connect, "--commands", script("client_b")]);
+// Client C joins the match that is already running, once the server's script asks for it.
+await waitFor("the server to ask for client c", () => /net server:/.test(server.output));
+start("client c", exe, ["--headless", "--no-render", "--real-time", ...connect, "--commands", script("client_c")]);
 await waitFor("every process to finish", () => processes.every((p) => p.exited === 0));
 
 const seenByServer = positions(server).get("player_0");
@@ -103,8 +107,9 @@ for (const p of [a, b]) {
   const seen = positions(p).get("player_0");
   if (!seen || distance(seen, seenByServer) > TOLERANCE) fail(`${p.name} sees player_0 at ${seen}, the server at ${seenByServer}`);
 }
-const idle = positions(b).get("player_1");
-if (!idle || distance(idle, PLACE_B) > TOLERANCE) fail(`player_1 should be at ${PLACE_B}, client b sees ${idle}`);
+// The restart moved player 1 (who never walked) to a spawn point; the others print after it left.
+const own = positions(b).get("player_1");
+if (!own || distance(own, PLACE_B) < 5) fail(`the restart should have moved player_1 from ${PLACE_B}, client b sees ${own}`);
 const states = JSON.stringify(statesOfA(server));
 if (!states.includes("movement.state")) fail(`the server printed no movement state: ${states}`);
 for (const p of [a, b]) {

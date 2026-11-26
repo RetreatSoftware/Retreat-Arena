@@ -1,0 +1,27 @@
+# Network check, client C (player 2): joins in the middle of the match, gets the clock, the scores
+# and later the result and the restart like everyone else. It does not render.
+wait_until 3000 assert.net_joined
+wait_until 3000 assert.spawn_count 3
+wait 64
+assert.match_running
+# The server set the clock to 600 s before this client joined.
+assert.match_clock 300 600
+assert.match_score 1 1
+assert.match_score 0 0
+hud.scoreboard on
+wait 10
+wait_until 20000 assert.hud_text hud_match_score_row0 Blue 1 1 0
+# What happened before it joined is no news to it.
+wait_until 20000 assert.hud_shown hud_kill0 false
+movement.look 3 0
+wait_until 60000 assert.match_finished
+wait 64
+assert.match_winner 1
+wait_until 20000 assert.hud_text hud_match_banner Blue wins
+movement.look -3 0
+wait_until 60000 assert.match_running
+wait 64
+assert.match_score 1 0
+assert.health 2 100
+net.stats
+quit

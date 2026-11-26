@@ -1,0 +1,100 @@
+# The match on one machine, with a shortened clock: timer, kill feed, scoreboard on Tab, winner,
+# restart (scores, health, ammo, positions, rockets in flight), then a scoreboard for eight players.
+# Run from the repository root.
+spawn.solo 0
+spawn.join 1
+physics.teleport player_1 0 0.6 19
+wait_until 600 assert.visual_ready player_0
+wait_until 600 assert.visual_ready player_1
+wait 80
+assert.match_running
+assert.match_clock 170 180
+assert.hud_shown hud_match_clock true
+assert.hud_shown hud_match_banner false
+assert.hud_shown hud_match_score_head false
+match.set_clock 65
+wait 2
+assert.hud_text hud_match_clock 1:05
+health.damage 1 100 0
+wait 3
+assert.hud_text hud_kill0 Red killed Blue
+snapshot match_kill_feed
+input.key_down Tab
+wait 3
+assert.hud_text hud_match_score_head Player Pts K D
+assert.hud_text hud_match_score_row0 > Red 1 1 0
+assert.hud_text hud_match_score_row1 Blue 0 0 1
+assert.hud_shown hud_match_score_row2 false
+assert.hud_shown hud_crosshair false
+snapshot match_scoreboard_held
+input.key_up Tab
+wait 3
+assert.hud_shown hud_match_score_head false
+assert.hud_shown hud_crosshair true
+wait_until 300 assert.health 1 100
+# Away from the spawn points, one round used, a rocket high in the air.
+physics.teleport player_0 5 0.6 20
+input.tap MouseLeft
+wait 3
+movement.look 0 1.2
+wait 2
+input.tap MouseRight
+wait 5
+assert.launcher_rockets 1
+match.set_clock 0.05
+wait 8
+assert.match_finished
+assert.match_winner 0
+assert.hud_text hud_match_banner Red wins
+assert.hud_text hud_match_clock Next match in 8
+assert.hud_text hud_match_score_row0 > Red 1 1 0
+# Nobody shoots while the result is shown.
+input.tap MouseLeft
+wait 3
+assert.rifle_ammo 0 29
+assert.launcher_rockets 1
+movement.look 0 -0.1
+wait 3
+snapshot match_result
+match.set_clock 0.05
+wait 8
+assert.match_running
+assert.match_clock 179 180
+assert.launcher_rockets 0
+assert.match_score 0 0
+assert.match_score 1 0
+assert.health 0 100
+assert.rifle_ammo 0 30
+assert.launcher_ammo 0 4
+assert.movement_near 0 0 0 26 0.1
+wait 3
+assert.hud_shown hud_match_banner false
+assert.hud_shown hud_match_score_head false
+wait 300
+assert.hud_shown hud_kill0 false
+snapshot match_restarted
+# The most players there can be.
+spawn.join 2
+spawn.join 3
+spawn.join 4
+spawn.join 5
+spawn.join 6
+spawn.join 7
+wait 80
+health.damage 1 100 2
+health.damage 3 100 2
+health.damage 4 100 5
+health.kill 6
+wait 3
+assert.hud_text hud_kill0 Green killed Blue
+assert.hud_text hud_kill3 Cyan fell
+hud.scoreboard on
+wait 3
+assert.hud_text hud_match_score_row0 Green 2 2 0
+assert.hud_text hud_match_score_row7 Cyan -1 0 1
+snapshot match_scoreboard_full
+match.end
+wait 3
+assert.hud_text hud_match_banner Green wins
+snapshot match_result_full
+quit

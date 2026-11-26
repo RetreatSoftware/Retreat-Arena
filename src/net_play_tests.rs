@@ -15,8 +15,8 @@ use retreat_engine_api::{
     AnalogInput, NetViewTick, RayCast, cast_ray, cast_ray_at, run_command_line,
 };
 use retreat_gameplay_api::{
-    CharacterSize, Health, LookAngles, MatchPhase, MatchState, PlayerId, Scoreboard, SpawnPoints,
-    WeaponKind, WeaponStatus, Weapons, view_direction,
+    CharacterSize, Health, KillLog, LookAngles, MatchPhase, MatchState, PlayerId, Scoreboard,
+    SpawnPoints, WeaponKind, WeaponStatus, Weapons, view_direction,
 };
 use retreat_module_character_movement::{ADVANCE_AXIS, MovementState, STRAFE_AXIS};
 use retreat_module_projectile_launcher::Rocket;
@@ -602,4 +602,81 @@ fn a_shot_clearly_above_a_fox_misses() {
     };
     assert!(hits_at(1.0));
     assert!(!hits_at(1.35));
+}
+
+fn kill_log(app: &mut App) -> KillLog {
+    let world = app.world_mut();
+    let mut logs = world.query::<&KillLog>();
+    logs.single(world).expect("one match").clone()
+}
+
+#[test]
+fn a_match_ends_with_its_winner_and_restarts_by_itself_on_every_machine() {
+    let mut harness = harness();
+    face_off(&mut harness);
+    on_server(&mut harness, "health.damage 0 100 1");
+    harness.run_idle(40);
+    on_server(&mut harness, "match.set_clock 1");
+    harness.run_idle(100);
+    on_server(&mut harness, "assert.match_winner 1");
+    assert_clients_agree(&mut harness, "at the end");
+    let log = kill_log(&mut harness.server_app);
+    assert_eq!(log.entries().len(), 1);
+    for client in &mut harness.client_apps {
+        assert_eq!(kill_log(client), log);
+        run_command_line(client.world_mut(), "assert.match_winner 1").expect("the winner");
+    }
+    // The pause is 8 s.
+    harness.run_idle(520);
+    on_server(&mut harness, "assert.match_running");
+    on_server(&mut harness, "assert.match_score 1 0");
+    assert_clients_agree(&mut harness, "after the restart");
+    for client in &mut harness.client_apps {
+        assert!(kill_log(client).entries().is_empty());
+    }
+}
+
+#[test]
+fn a_restart_with_a_rocket_in_flight_resets_everything_over_a_lossy_link() {
+    let mut harness = harness_over(
+        LinkConditions {
+            latency_ticks: 8,
+            jitter_ticks: 2,
+            loss: 0.08,
+        },
+        4,
+    );
+    let spawns = harness
+        .server_app
+        .world()
+        .resource::<SpawnPoints>()
+        .0
+        .clone();
+    face_off(&mut harness);
+    on_server(&mut harness, "health.damage 0 40 1");
+    harness.step(&[(1, vec!["rifle.fire 0 0.5".to_string()])]);
+    harness.run_idle(30);
+    // Straight up: it would fly for four seconds.
+    harness.step(&[(1, vec!["launcher.fire 0 1.4".to_string()])]);
+    harness.run_idle(40);
+    assert_eq!(rockets(&mut harness.server_app).len(), 1, "in flight");
+    on_server(&mut harness, "match.restart");
+    harness.run_idle(100);
+    for app in [&mut harness.server_app]
+        .into_iter()
+        .chain(&mut harness.client_apps)
+    {
+        assert!(rockets(app).is_empty(), "the old match's rocket is gone");
+        for id in [0, 1] {
+            assert_eq!(health(app, id), 100);
+            assert_eq!(carried(app, id, WeaponKind::Rifle).ammo, 30);
+            assert_eq!(carried(app, id, WeaponKind::Launcher).ammo, 4);
+            let feet = character(app, id).0;
+            assert!(
+                spawns.iter().any(|spawn| spawn.feet.distance(feet) < 0.1),
+                "player {id} is at {feet}, not at a spawn point"
+            );
+        }
+    }
+    assert_clients_agree(&mut harness, "after the restart");
 }

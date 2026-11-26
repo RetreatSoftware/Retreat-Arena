@@ -2,6 +2,8 @@
 # server's view of client A's character is printed for comparison.
 wait_until 20000 assert.net_clients 2
 wait_until 20000 assert.spawn_count 2
+# A slow machine must not run out of match while the steps below take their time.
+match.set_clock 600
 # Client B's character is put beside client A's path, so one picture shows both.
 physics.teleport player_1 3 0.6 18
 # Once client B aims, client A's player is put exactly where it aims.
@@ -12,6 +14,28 @@ assert.launcher_hits 1 1
 assert.rifle_hits 1 1
 assert.match_score 1 1
 wait_until 2000 assert.health 0 100
+# B has seen the scoreboard of the two of them.
+wait_until 60000 assert.movement_look 1 2.5 0.01
+# run.mjs starts client C, which joins the running match, when it sees this line.
+net.status
+wait_until 60000 assert.spawn_count 3
+# B and C have seen the running scoreboard.
+wait_until 60000 assert.movement_look 1 2 0.01
+wait_until 60000 assert.movement_look 2 3 0.01
+match.set_clock 0.5
+wait_until 2000 assert.match_finished
+# The result stays until B and C have seen it.
+match.set_clock 600
+assert.match_winner 1
+wait_until 60000 assert.movement_look 1 -2 0.01
+wait_until 60000 assert.movement_look 2 -3 0.01
+match.set_clock 0.5
+wait_until 2000 assert.match_running
+match.set_clock 600
+assert.match_score 1 0
+assert.health 0 100
+assert.launcher_rockets 0
+# C leaves, then B.
 wait_until 60000 assert.spawn_count 1
 wait 64
 net.bodies

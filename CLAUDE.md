@@ -35,7 +35,7 @@ The root `../CLAUDE.md` also applies here.
   `cargo run -- --headless --commands scripts/verify/arena_map.cmds`
 - `scripts/verify/network/`: `node scripts/verify/network/run.mjs [--browser] [--software-renderer]`
   after `cargo build` (and `node scripts/web/build.mjs` for `--browser`). Client A moves, client B
-  renders, watches, hits A with a rocket, kills it with a rifle shot and sees the respawn. B turns its view when it is ready and A waits
+  renders, watches, hits A with a rocket, kills it with a rifle shot and sees the respawn. Then client C joins the running match and everyone sees the result and the restart. Scripts set the match clock with `match.set_clock`. B turns its view when it is ready and A waits
   for that; the server puts B's character beside A's path and, once B aims (the yaw is the signal),
   puts A on the spot B aims at; B's script holds that spot (`assert.movement_near`).
   The network runner starts the executable itself and sets `BEVY_ASSET_ROOT`.
@@ -53,14 +53,17 @@ The root `../CLAUDE.md` also applies here.
 |---|---|
 | Rifle | 20 damage, a shot every 0.15 s, 30 rounds, 1.5 s reload (automatic when empty), 100 m |
 | Rockets | 80 on a direct hit, 80 to 20 over a 3 m blast, half to the shooter, 25 m/s, 4 s flight, one every 0.9 s, 4 rockets, 2 s reload |
+| Match (decided 2026-11-26) | 180 s, result shown 8 s; 1 point a kill, -1 for a self-kill or a fall |
+| Players | named by color: Red, Blue, Green, Yellow, Purple, Orange, Cyan, White |
+| Scoreboard and kill feed | text size 22; a death stays 4 s, at most 4 |
 | Health | 100, respawn after 3 s, 1 s spawn protection (ends on firing), die below -10 m |
 | Character size (decided 2026-11-26) | the fox: radius 0.35 m, height 1.2 m, eyes 1.0 m |
 | HUD | hit marker 0.2 s, text size 28, crosshair 24 px |
 
 ## Status
 
-Arena steps 1 to 4: animated, colored foxes walk the `graybox` arena (stairs included) and fight with a
-rifle (left mouse, visible tracers) and rockets (right mouse), alone or with a server and clients. The
-server decides every hit: rifle shots as the shooter saw the others, rockets against where bodies are.
-Dead players are hidden, walked through, cannot move, shoot or be hit, and respawn at a spawn point. No
-sounds, match display or scoreboard yet. The server needs `--headless --no-render`.
+Arena steps 1 to 5: animated, colored foxes walk the `graybox` arena (stairs included) and fight timed
+free-for-all matches with a rifle (left mouse) and rockets (right mouse), alone or with a server and
+clients. The server decides hits, deaths, scores and the match. The HUD shows health, ammo, the clock,
+the kill feed, the scoreboard (Tab, and at the end) and the winner; the next match starts by itself.
+No sounds yet. The server needs `--headless --no-render`.

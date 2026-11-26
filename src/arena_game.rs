@@ -6,7 +6,7 @@ use retreat_engine::net::client::NetClient;
 use retreat_engine::net::server::NetServer;
 use retreat_engine::{CommandScript, dispatch_command_line};
 use retreat_engine_api::GameCamera;
-use retreat_gameplay_api::{CharacterSize, MAX_PLAYERS};
+use retreat_gameplay_api::{CharacterSize, MAX_PLAYERS, PlayerNames};
 use retreat_module_arena::ArenaModulePlugin;
 use retreat_module_character_movement::CharacterMovementModulePlugin;
 use retreat_module_character_visuals::{
@@ -14,7 +14,7 @@ use retreat_module_character_visuals::{
 };
 use retreat_module_combat_hud::{CombatHudConfig, CombatHudModulePlugin};
 use retreat_module_health::{HealthConfig, HealthModulePlugin};
-use retreat_module_match::MatchModulePlugin;
+use retreat_module_match::{MatchConfig, MatchModulePlugin};
 use retreat_module_player_spawn::PlayerSpawnModulePlugin;
 use retreat_module_projectile_launcher::{LauncherConfig, ProjectileLauncherModulePlugin};
 use retreat_module_rifle::{RifleConfig, RifleModulePlugin};
@@ -53,18 +53,32 @@ fn character_size() -> CharacterSize {
     }
 }
 
-/// One color per player, in player order: red, blue, green, yellow, purple, orange, cyan, white.
-/// They replace the fox's texture (`flat_colors`), so they show as written.
-const PLAYER_COLORS: [(f32, f32, f32); MAX_PLAYERS] = [
-    (0.85, 0.12, 0.1),
-    (0.12, 0.35, 0.95),
-    (0.15, 0.7, 0.2),
-    (0.95, 0.8, 0.1),
-    (0.55, 0.2, 0.85),
-    (0.95, 0.45, 0.05),
-    (0.1, 0.8, 0.85),
-    (0.92, 0.92, 0.92),
+/// Name and color of every player, in player order. The colors replace the fox's texture
+/// (`flat_colors`), so they show as written; the names are how the HUD calls players.
+const PLAYERS: [(&str, (f32, f32, f32)); MAX_PLAYERS] = [
+    ("Red", (0.85, 0.12, 0.1)),
+    ("Blue", (0.12, 0.35, 0.95)),
+    ("Green", (0.15, 0.7, 0.2)),
+    ("Yellow", (0.95, 0.8, 0.1)),
+    ("Purple", (0.55, 0.2, 0.85)),
+    ("Orange", (0.95, 0.45, 0.05)),
+    ("Cyan", (0.1, 0.8, 0.85)),
+    ("White", (0.92, 0.92, 0.92)),
 ];
+
+fn player_names() -> PlayerNames {
+    PlayerNames(PLAYERS.map(|(name, _)| name.to_string()).to_vec())
+}
+
+/// The match (recorded in CLAUDE.md): three minutes, then the result for eight seconds.
+fn match_rules() -> MatchConfig {
+    MatchConfig {
+        length_seconds: 180.0,
+        result_seconds: 8.0,
+        points_per_kill: 1,
+        points_per_self_kill: -1,
+    }
+}
 
 /// The rifle's numbers (recorded in CLAUDE.md): 5 hits kill, about 7 shots a second.
 fn rifle() -> RifleConfig {
@@ -109,6 +123,9 @@ fn combat_hud() -> CombatHudConfig {
         hit_marker_text: "HIT".to_string(),
         font_size: 28.0,
         crosshair_size: 24.0,
+        scoreboard_font_size: 22.0,
+        kill_feed_seconds: 4.0,
+        kill_feed_lines: 4,
     }
 }
 
@@ -131,8 +148,8 @@ fn character_visuals() -> CharacterVisualsConfig {
             run: clip("Run", 1.0, Some(7.0)),
             air: clip("Run", 0.4, None),
         }),
-        colors: PLAYER_COLORS
-            .map(|(red, green, blue)| Color::srgb(red, green, blue))
+        colors: PLAYERS
+            .map(|(_, (red, green, blue))| Color::srgb(red, green, blue))
             .to_vec(),
         flat_colors: true,
         ..default()
@@ -148,6 +165,8 @@ pub fn add_arena_plugins(app: &mut App) {
         .insert_resource(launcher())
         .insert_resource(health())
         .insert_resource(combat_hud())
+        .insert_resource(match_rules())
+        .insert_resource(player_names())
         .insert_resource(ClearColor(SKY_COLOR));
     app.add_plugins((
         ArenaModulePlugin,
