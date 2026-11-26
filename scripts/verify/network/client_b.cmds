@@ -47,7 +47,9 @@ snapshot net_b_rocket_hit
 # One rifle shot finishes it.
 input.tap MouseLeft
 wait_until 20000 assert.rifle_hits 1 1
-wait_until 2000 assert.visuals_hidden 0 true
+# A slow machine can see the death (3 s) only after the respawn, so it checks the score, which
+# stays; combat.cmds and rockets.cmds check that the dead are hidden.
+wait_until 2000 assert.match_score 1 1
 snapshot net_b_killed
 # The respawn, seen from behind the player that came back.
 wait_until 20000 assert.health 0 100
