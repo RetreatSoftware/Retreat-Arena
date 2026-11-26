@@ -34,8 +34,8 @@ wait_until 20000 assert.movement_near 0 -0.15 0 17.37 0.05
 wait 64
 assert.hud_shown hud_crosshair true
 assert.ui_text hud_health Health 100
-assert.ui_text hud_ammo_rifle Rifle 30/30
-assert.ui_text hud_ammo_launcher Rockets 4/4
+assert.ui_text hud_ammo_rifle Rifle 30/30 +60
+assert.ui_text hud_ammo_launcher Rockets 4/4 +8
 snapshot net_b_aims
 # A rocket takes most of player 0's health (and a little of this one's). It flies 3 m, too short
 # to picture reliably here (rockets.cmds shows one in flight). Hit counts stay, so none is missed.
@@ -47,6 +47,12 @@ wait_until 20000 assert.launcher_hits 1 1
 # A slowly rendering machine would otherwise picture an earlier frame.
 wait 64
 snapshot net_b_rocket_hit
+# The blast hurt this player too: a health kit, with its key.
+input.tap E
+wait_until 20000 assert.health 1 100
+wait_until 20000 assert.inventory 1 health_kit 0
+wait_until 20000 assert.hud_shown hud_item0 false
+snapshot net_b_healed
 # One rifle shot finishes it.
 input.tap MouseLeft
 wait_until 20000 assert.rifle_hits 1 1

@@ -15,8 +15,8 @@ use retreat_engine_api::{
     AnalogInput, NetViewTick, RayCast, SoundEvents, cast_ray, cast_ray_at, run_command_line,
 };
 use retreat_gameplay_api::{
-    CharacterSize, Health, KillLog, LookAngles, MatchPhase, MatchState, PlayerId, Scoreboard,
-    SpawnPoints, WeaponKind, WeaponStatus, Weapons, view_direction,
+    CharacterSize, Health, Inventory, ItemId, KillLog, LookAngles, MatchPhase, MatchState,
+    PlayerId, Scoreboard, SpawnPoints, WeaponKind, WeaponStatus, Weapons, view_direction,
 };
 use retreat_module_character_movement::{ADVANCE_AXIS, MovementState, STRAFE_AXIS};
 use retreat_module_projectile_launcher::{Rocket, blast_look};
@@ -796,4 +796,76 @@ fn arena_preset_full_match() {
     let own = sounds_asked(&harness.client_apps[1]);
     assert!(own.iter().any(|id| id.starts_with("hud/hit/")), "{own:?}");
     assert!(own.iter().any(|id| id.ends_with("/boom")), "{own:?}");
+}
+
+/// How many of `item` player `id` carries on one machine.
+fn items_of(app: &mut App, id: u32, item: &str) -> u32 {
+    let world = app.world_mut();
+    let mut query = world.query::<(&PlayerId, &Inventory)>();
+    query
+        .iter(world)
+        .find(|(player, _)| player.0 == id)
+        .map(|(_, inventory)| inventory.count(&ItemId::new(item)))
+        .unwrap_or_else(|| panic!("no inventory {id}"))
+}
+
+#[test]
+fn reserves_and_health_kits_agree_on_every_machine_over_a_lossy_link() {
+    let mut harness = harness_over(
+        LinkConditions {
+            latency_ticks: 8,
+            jitter_ticks: 2,
+            loss: 0.08,
+        },
+        4,
+    );
+    face_off(&mut harness);
+    // Client 1 shoots into the sky twice and reloads: the reserve pays.
+    for line in ["rifle.fire 0 1.2", "rifle.fire 0 1.2", "rifle.reload"] {
+        harness.step(&[(1, vec![line.to_string()])]);
+        harness.run_idle(20);
+    }
+    harness.run_idle(150);
+    let fired = 60 - items_of(&mut harness.server_app, 1, "rifle_ammo");
+    assert!((1..=2).contains(&fired), "{fired} rounds left the reserve");
+    assert_eq!(weapon(&mut harness.server_app, 1).ammo, 30);
+    // Wounded, it uses its kit: at once on its own machine, then everywhere.
+    on_server(&mut harness, "health.damage 1 70 0");
+    harness.run_idle(40);
+    // The input may be lost on the way: then the prediction is taken back and it is sent again.
+    let mut attempts = 0;
+    while health(&mut harness.server_app, 1) == 30 {
+        attempts += 1;
+        assert!(attempts <= 5, "no use of the kit ever arrived");
+        harness.step(&[(1, vec!["inventory.use health_kit".to_string()])]);
+        harness.run_idle(2);
+        assert_eq!(health(&mut harness.client_apps[1], 1), 80, "predicted");
+        assert_eq!(health(&mut harness.server_app, 1), 30, "not there yet");
+        harness.run_idle(100);
+    }
+    assert_eq!(health(&mut harness.server_app, 1), 80);
+    for app in [&mut harness.server_app]
+        .into_iter()
+        .chain(&mut harness.client_apps)
+    {
+        assert_eq!(items_of(app, 1, "health_kit"), 0);
+        assert_eq!(items_of(app, 1, "rifle_ammo"), 60 - fired);
+        assert_eq!(items_of(app, 0, "health_kit"), 1);
+    }
+    assert_clients_agree(&mut harness, "after the kit");
+    // A death empties it, the new life starts with the loadout.
+    on_server(&mut harness, "health.kill 1");
+    harness.run_idle(40);
+    for client in &mut harness.client_apps {
+        assert_eq!(items_of(client, 1, "rifle_ammo"), 0);
+    }
+    harness.run_idle(250);
+    for app in [&mut harness.server_app]
+        .into_iter()
+        .chain(&mut harness.client_apps)
+    {
+        assert_eq!(items_of(app, 1, "rifle_ammo"), 60);
+        assert_eq!(items_of(app, 1, "health_kit"), 1);
+    }
+    assert_eq!(harness.server().stats.refusals(), 0);
 }

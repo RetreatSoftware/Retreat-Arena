@@ -6,7 +6,10 @@ use retreat_engine::net::client::NetClient;
 use retreat_engine::net::server::NetServer;
 use retreat_engine::{CommandScript, dispatch_command_line};
 use retreat_engine_api::GameCamera;
-use retreat_gameplay_api::{CharacterSize, MAX_PLAYERS, PlayerRoster, RosterEntry, SoundCue};
+use retreat_gameplay_api::{
+    CharacterSize, ItemCatalog, ItemDefinition, ItemId, ItemKind, MAX_PLAYERS, PlayerRoster,
+    RosterEntry, SoundCue, WeaponKind,
+};
 use retreat_module_arena::ArenaModulePlugin;
 use retreat_module_character_movement::{CharacterMovementModulePlugin, MovementConfig};
 use retreat_module_character_visuals::{
@@ -14,6 +17,7 @@ use retreat_module_character_visuals::{
 };
 use retreat_module_combat_hud::{CombatHudConfig, CombatHudModulePlugin};
 use retreat_module_health::{HealthConfig, HealthModulePlugin};
+use retreat_module_inventory::{InventoryConfig, InventoryModulePlugin};
 use retreat_module_match::{MatchConfig, MatchModulePlugin};
 use retreat_module_player_spawn::PlayerSpawnModulePlugin;
 use retreat_module_projectile_launcher::{LauncherConfig, ProjectileLauncherModulePlugin};
@@ -133,6 +137,31 @@ fn launcher() -> LauncherConfig {
     }
 }
 
+/// The reserve ammunition and what else players carry (recorded in CLAUDE.md). Item ids are
+/// stable: commands, scripts and one day saved games name them.
+fn items() -> ItemCatalog {
+    let ammo = ItemKind::Ammo;
+    ItemCatalog(vec![
+        ItemDefinition::new("rifle_ammo", "Rifle rounds", ammo(WeaponKind::Rifle), 120),
+        ItemDefinition::new("rockets", "Rockets", ammo(WeaponKind::Launcher), 8),
+        ItemDefinition::new("health_kit", "Health kit", ItemKind::Heal(50), 3),
+    ])
+}
+
+/// What every new life starts with. The launcher's rockets are in it until they are found on the
+/// map (inventory and loot, step L2).
+fn inventory() -> InventoryConfig {
+    let start = |item: &str, count| (ItemId::new(item), count);
+    InventoryConfig {
+        slots: 4,
+        loadout: vec![
+            start("rifle_ammo", 60),
+            start("rockets", 8),
+            start("health_kit", 1),
+        ],
+    }
+}
+
 fn health() -> HealthConfig {
     HealthConfig {
         max_health: 100,
@@ -193,6 +222,8 @@ pub fn add_arena_plugins(app: &mut App) {
         .insert_resource(combat_hud())
         .insert_resource(match_rules())
         .insert_resource(player_roster())
+        .insert_resource(items())
+        .insert_resource(inventory())
         .insert_resource(movement())
         .insert_resource(ClearColor(SKY_COLOR));
     app.add_plugins((
@@ -202,6 +233,7 @@ pub fn add_arena_plugins(app: &mut App) {
         ThirdPersonCameraModulePlugin,
         CharacterVisualsModulePlugin,
         HealthModulePlugin,
+        InventoryModulePlugin,
         MatchModulePlugin,
         RifleModulePlugin,
         ProjectileLauncherModulePlugin,

@@ -32,6 +32,7 @@ retreat_module_character_visuals = { git = "https://github.com/RetreatSoftware/R
 retreat_module_rifle = { git = "https://github.com/RetreatSoftware/Retreat-Modules" }
 retreat_module_combat_hud = { git = "https://github.com/RetreatSoftware/Retreat-Modules" }
 retreat_module_projectile_launcher = { git = "https://github.com/RetreatSoftware/Retreat-Modules" }
+retreat_module_inventory = { git = "https://github.com/RetreatSoftware/Retreat-Modules" }
 
 # Same build profiles as the engine: Bevy is slow unoptimized, and full debug info makes target/ huge.
 [profile.dev]

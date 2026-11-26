@@ -15,12 +15,15 @@ All commands are PowerShell, run from this folder.
 | W A S D | move; Shift sprint, Space jump, Ctrl dash |
 | Left mouse (hold) | rifle |
 | Right mouse (hold) | rockets (they fly, so aim ahead of someone running) |
-| R | reload |
+| R | reload (from the reserve shown as `+n`) |
+| E | use a health kit (restores 50) |
 | Q | swap shoulder |
 | Tab (hold) | scoreboard |
 
 Five rifle hits kill, or one direct rocket and one rifle hit; you come back after 3 seconds. A match
-lasts three minutes; the winner is shown for eight seconds, then the next match starts.
+lasts three minutes; the winner is shown for eight seconds, then the next match starts. Every life
+starts with 60 spare rifle rounds, 8 spare rockets and one health kit; nothing is kept after a death
+or a match.
 
 ## Play alone
 
@@ -113,6 +116,10 @@ cargo run -- --headless --commands scripts/verify/rockets.cmds
 
 ```powershell
 cargo run -- --headless --commands scripts/verify/match.cmds
+```
+
+```powershell
+cargo run -- --headless --commands scripts/verify/inventory.cmds
 ```
 
 ```powershell
