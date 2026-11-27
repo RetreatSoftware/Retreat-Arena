@@ -1,5 +1,6 @@
-# Pickups on the map: seen, taken, back again, left lying by whoever cannot carry more, the
-# launcher found, what the dead drop, and a new match. Run from the repository root.
+# Pickups on the map, in pictures: seen, taken, back again, the launcher found, what the dead drop.
+# Kept short, a browser renders every frame; the other rules are in simulation/loot.cmds. Run from
+# the repository root.
 spawn.solo 0
 spawn.join 1
 physics.teleport player_1 6 0.6 14
@@ -25,13 +26,6 @@ assert.loot_available health_east false
 wait_until 200 assert.loot_available health_east true
 wait 5
 snapshot loot_health_respawned
-# With a full bag it stays.
-inventory.grant 0 health_kit 9
-wait 3
-physics.teleport player_0 20 0.6 6
-wait 30
-assert.loot_available health_east true
-assert.inventory 0 health_kit 3
 # The launcher on the high platform: loaded, with rockets to spare.
 physics.teleport player_0 -3.5 2.6 -17.5
 wait 80
@@ -62,33 +56,12 @@ health.damage 0 40 1
 wait 3
 input.tap E
 wait 3
-assert.inventory 0 health_kit 2
+assert.inventory 0 health_kit 1
 input.key_down W
 wait_until 200 assert.loot_drops 0
 input.key_up W
 wait 5
 assert.inventory 0 rifle_ammo 120
-assert.inventory 0 health_kit 3
+assert.inventory 0 health_kit 2
 snapshot loot_drop_taken
-# What nobody takes is gone after twenty seconds.
-physics.teleport player_0 20 0.6 20
-physics.teleport player_1 6 0.6 14
-wait 80
-health.kill 1
-wait 5
-assert.loot_drops 1
-wait 1200
-assert.loot_drops 1
-wait_until 200 assert.loot_drops 0
-# A new match puts everything back.
-health.kill 1
-wait 5
-assert.loot_drops 1
-assert.loot_available launcher_platform false
-match.restart
-wait 5
-assert.loot_drops 0
-assert.loot_available launcher_platform true
-assert.loot_available rockets_east true
-assert.inventory 0 launcher 0
 quit
