@@ -11,7 +11,7 @@ movement.look 0.0859 -0.128
 wait 20
 assert.ui_text hud_health Health 100
 assert.ui_text hud_ammo_rifle Rifle 30/30 +60
-assert.ui_text hud_ammo_launcher Rockets 4/4 +8
+assert.hud_shown hud_ammo_launcher false
 assert.hud_shown hud_crosshair true
 assert.hud_shown hud_hit false
 snapshot combat_aim

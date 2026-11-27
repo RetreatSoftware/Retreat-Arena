@@ -2,6 +2,9 @@
 # server's view of client A's character is printed for comparison.
 wait_until 20000 assert.net_clients 2
 wait_until 20000 assert.spawn_count 2
+# The launcher is found on the map (../loot.cmds); here player 1 is simply given it.
+inventory.grant 1 launcher 1
+inventory.grant 1 rockets 8
 # A slow machine must not run out of match while the steps below take their time.
 match.set_clock 600
 # Client B's character is put beside client A's path, so one picture shows both.

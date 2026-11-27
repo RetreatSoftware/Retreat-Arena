@@ -22,8 +22,10 @@ All commands are PowerShell, run from this folder.
 
 Five rifle hits kill, or one direct rocket and one rifle hit; you come back after 3 seconds. A match
 lasts three minutes; the winner is shown for eight seconds, then the next match starts. Every life
-starts with 60 spare rifle rounds, 8 spare rockets and one health kit; nothing is kept after a death
-or a match.
+starts with the rifle, 60 spare rounds and one health kit. Walk over the glowing balls on the map to
+pick things up: green a health kit, yellow rifle rounds, orange rockets, violet (on the high
+platform) the rocket launcher with rockets. They come back after a while. The dead drop what they
+carried (white) for 20 seconds. Nothing is kept after a death or a match.
 
 ## Play alone
 
@@ -120,6 +122,10 @@ cargo run -- --headless --commands scripts/verify/match.cmds
 
 ```powershell
 cargo run -- --headless --commands scripts/verify/inventory.cmds
+```
+
+```powershell
+cargo run -- --headless --commands scripts/verify/loot.cmds
 ```
 
 ```powershell

@@ -19,6 +19,7 @@ use retreat_gameplay_api::{
     PlayerId, Scoreboard, SpawnPoints, WeaponKind, WeaponStatus, Weapons, view_direction,
 };
 use retreat_module_character_movement::{ADVANCE_AXIS, MovementState, STRAFE_AXIS};
+use retreat_module_loot::LootConfig;
 use retreat_module_projectile_launcher::{Rocket, blast_look};
 use std::collections::BTreeSet;
 
@@ -148,6 +149,18 @@ fn clients_follow_damage_death_respawn_score_and_restart() {
 fn predicted_timers_need_no_corrections() {
     let mut harness = harness();
     on_server(&mut harness, "health.add_dummy 11");
+    // Its items stay with it: a respawned dummy picking up its own drop is the server's to say.
+    harness
+        .server_app
+        .world_mut()
+        .resource_mut::<LootConfig>()
+        .drop_seconds = 0.0;
+    // Its items stay with it: a respawned dummy picking up its own drop is the server's to say.
+    harness
+        .server_app
+        .world_mut()
+        .resource_mut::<LootConfig>()
+        .drop_seconds = 0.0;
     harness.run_idle(100);
     on_server(&mut harness, "health.kill 11");
     harness.run_idle(60);
@@ -533,6 +546,7 @@ fn a_rocket_is_predicted_once_and_the_server_decides_its_blast_over_a_lossy_link
         4,
     );
     face_off(&mut harness);
+    arm_with_launcher(&mut harness, 1);
     // Level with the target's middle, 8 m ahead.
     harness.step(&[(1, vec!["launcher.fire 0 -0.05".to_string()])]);
     let predicted = rockets(&mut harness.client_apps[1]);
@@ -662,6 +676,7 @@ fn a_restart_with_a_rocket_in_flight_resets_everything_over_a_lossy_link() {
         .0
         .clone();
     face_off(&mut harness);
+    arm_with_launcher(&mut harness, 1);
     on_server(&mut harness, "health.damage 0 40 1");
     harness.step(&[(1, vec!["rifle.fire 0 0.5".to_string()])]);
     harness.run_idle(30);
@@ -737,6 +752,17 @@ fn arena_preset_full_match() {
     run_until_health(&mut harness, 0, 0, 300);
     hold_fire(&mut harness, false);
     run_until_health(&mut harness, 0, 100, 300);
+    // The dead player's items lie where it fell.
+    on_server(&mut harness, "assert.loot_drops 1");
+    // Player 1 fetches the launcher from the high platform.
+    on_server(&mut harness, "physics.teleport player_1 -3.5 2.6 -21.5");
+    harness.run_idle(100);
+    on_server(
+        &mut harness,
+        "assert.loot_available launcher_platform false",
+    );
+    on_server(&mut harness, "assert.inventory 1 launcher 1");
+    on_server(&mut harness, "assert.inventory 1 rockets 4");
     // A rocket kill: two direct hits.
     face_off(&mut harness);
     on_client(&mut harness, 1, "movement.look 0 -0.05");
@@ -867,5 +893,82 @@ fn reserves_and_health_kits_agree_on_every_machine_over_a_lossy_link() {
         assert_eq!(items_of(app, 1, "rifle_ammo"), 60);
         assert_eq!(items_of(app, 1, "health_kit"), 1);
     }
+    assert_eq!(harness.server().stats.refusals(), 0);
+}
+
+/// Gives a server player the launcher and rockets, and lets its client learn of it.
+fn arm_with_launcher(harness: &mut NetHarness, id: u32) {
+    on_server(harness, &format!("inventory.grant {id} launcher 1"));
+    on_server(harness, &format!("inventory.grant {id} rockets 8"));
+    // Long enough that the client knows, and its input pacing has settled again.
+    harness.run_idle(100);
+}
+
+#[test]
+fn pickups_and_death_drops_agree_on_every_machine_over_a_lossy_link() {
+    let mut harness = harness_over(
+        LinkConditions {
+            latency_ticks: 8,
+            jitter_ticks: 2,
+            loss: 0.08,
+        },
+        4,
+    );
+    face_off(&mut harness);
+    on_server(&mut harness, "physics.teleport player_1 20 0.6 6");
+    harness.run_idle(100);
+    for client in 0..2 {
+        on_client(
+            &mut harness,
+            client,
+            "assert.loot_available health_east false",
+        );
+        on_client(
+            &mut harness,
+            client,
+            "assert.loot_available launcher_platform true",
+        );
+    }
+    for app in [&mut harness.server_app]
+        .into_iter()
+        .chain(&mut harness.client_apps)
+    {
+        assert_eq!(items_of(app, 1, "health_kit"), 2, "taken once");
+    }
+    // It comes back after fifteen seconds, and is not taken by a player that is full.
+    on_server(&mut harness, "inventory.grant 1 health_kit 1");
+    harness.run_idle(15 * 64);
+    for client in 0..2 {
+        on_client(
+            &mut harness,
+            client,
+            "assert.loot_available health_east true",
+        );
+    }
+    // A death leaves a drop everyone sees; the other player takes it.
+    on_server(&mut harness, "health.kill 1");
+    harness.run_idle(60);
+    for client in 0..2 {
+        on_client(&mut harness, client, "assert.loot_drops 1");
+    }
+    on_server(&mut harness, "physics.teleport player_0 20 0.6 6");
+    harness.run_idle(100);
+    for app in [&mut harness.server_app]
+        .into_iter()
+        .chain(&mut harness.client_apps)
+    {
+        assert_eq!(items_of(app, 0, "health_kit"), 3);
+        assert_eq!(items_of(app, 0, "rifle_ammo"), 120);
+    }
+    // What did not fit (two kits) still lies there, until the new match.
+    for client in 0..2 {
+        on_client(&mut harness, client, "assert.loot_drops 1");
+    }
+    on_server(&mut harness, "match.restart");
+    harness.run_idle(100);
+    for client in 0..2 {
+        on_client(&mut harness, client, "assert.loot_drops 0");
+    }
+    assert_clients_agree(&mut harness, "after the restart");
     assert_eq!(harness.server().stats.refusals(), 0);
 }

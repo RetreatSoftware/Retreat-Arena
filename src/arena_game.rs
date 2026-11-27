@@ -18,6 +18,7 @@ use retreat_module_character_visuals::{
 use retreat_module_combat_hud::{CombatHudConfig, CombatHudModulePlugin};
 use retreat_module_health::{HealthConfig, HealthModulePlugin};
 use retreat_module_inventory::{InventoryConfig, InventoryModulePlugin};
+use retreat_module_loot::{LootConfig, LootModulePlugin, PickupKind, PickupLook};
 use retreat_module_match::{MatchConfig, MatchModulePlugin};
 use retreat_module_player_spawn::PlayerSpawnModulePlugin;
 use retreat_module_projectile_launcher::{LauncherConfig, ProjectileLauncherModulePlugin};
@@ -145,20 +146,53 @@ fn items() -> ItemCatalog {
         ItemDefinition::new("rifle_ammo", "Rifle rounds", ammo(WeaponKind::Rifle), 120),
         ItemDefinition::new("rockets", "Rockets", ammo(WeaponKind::Launcher), 8),
         ItemDefinition::new("health_kit", "Health kit", ItemKind::Heal(50), 3),
+        ItemDefinition::new(
+            "launcher",
+            "Rocket launcher",
+            ItemKind::Weapon(WeaponKind::Launcher),
+            1,
+        ),
     ])
 }
 
-/// What every new life starts with. The launcher's rockets are in it until they are found on the
-/// map (inventory and loot, step L2).
+/// What every new life starts with. The launcher and its rockets are found on the map.
 fn inventory() -> InventoryConfig {
     let start = |item: &str, count| (ItemId::new(item), count);
     InventoryConfig {
-        slots: 4,
-        loadout: vec![
-            start("rifle_ammo", 60),
-            start("rockets", 8),
-            start("health_kit", 1),
+        // One slot per item the game has: nothing is ever turned away for lack of room.
+        slots: items().0.len() as u32,
+        loadout: vec![start("rifle_ammo", 60), start("health_kit", 1)],
+    }
+}
+
+/// What lies at the map's pickup spots and what the dead leave (recorded in CLAUDE.md).
+fn loot() -> LootConfig {
+    let kind = |kind: &str, contents: &[(&str, u32)], respawn_seconds, color| PickupKind {
+        kind: kind.to_string(),
+        contents: contents
+            .iter()
+            .map(|&(item, count)| (ItemId::new(item), count))
+            .collect(),
+        respawn_seconds,
+        look: PickupLook { color, radius: 0.3 },
+    };
+    let green = Color::srgb(0.1, 0.9, 0.2);
+    let yellow = Color::srgb(1.0, 0.85, 0.1);
+    let orange = Color::srgb(1.0, 0.4, 0.05);
+    let violet = Color::srgb(0.75, 0.2, 1.0);
+    LootConfig {
+        kinds: vec![
+            kind("health", &[("health_kit", 1)], 15.0, green),
+            kind("ammo", &[("rifle_ammo", 30)], 15.0, yellow),
+            kind("rockets", &[("rockets", 4)], 20.0, orange),
+            kind("launcher", &[("launcher", 1), ("rockets", 4)], 30.0, violet),
         ],
+        reach: 0.9,
+        drop_seconds: 20.0,
+        drop_look: PickupLook {
+            color: Color::srgb(0.95, 0.95, 0.95),
+            radius: 0.25,
+        },
     }
 }
 
@@ -224,6 +258,7 @@ pub fn add_arena_plugins(app: &mut App) {
         .insert_resource(player_roster())
         .insert_resource(items())
         .insert_resource(inventory())
+        .insert_resource(loot())
         .insert_resource(movement())
         .insert_resource(ClearColor(SKY_COLOR));
     app.add_plugins((
@@ -234,6 +269,7 @@ pub fn add_arena_plugins(app: &mut App) {
         CharacterVisualsModulePlugin,
         HealthModulePlugin,
         InventoryModulePlugin,
+        LootModulePlugin,
         MatchModulePlugin,
         RifleModulePlugin,
         ProjectileLauncherModulePlugin,
@@ -327,6 +363,14 @@ mod tests {
             world.resource::<SoloPlayer>().0,
             Some(PlayerId(SOLO_PLAYER_ID))
         );
+    }
+
+    #[test]
+    fn every_pickup_spot_of_the_map_holds_something() {
+        let config = loot();
+        for spot in retreat_module_arena::graybox_map().pickup_spots {
+            assert!(config.kind(&spot.kind).is_some(), "{}", spot.name);
+        }
     }
 
     #[test]

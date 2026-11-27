@@ -35,7 +35,7 @@ wait 64
 assert.hud_shown hud_crosshair true
 assert.ui_text hud_health Health 100
 assert.ui_text hud_ammo_rifle Rifle 30/30 +60
-assert.ui_text hud_ammo_launcher Rockets 4/4 +8
+wait_until 20000 assert.hud_text hud_ammo_launcher Rockets 4/4 +8
 snapshot net_b_aims
 # A rocket takes most of player 0's health (and a little of this one's). It flies 3 m, too short
 # to picture reliably here (rockets.cmds shows one in flight). Hit counts stay, so none is missed.

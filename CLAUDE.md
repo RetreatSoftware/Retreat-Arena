@@ -64,7 +64,8 @@ The root `../CLAUDE.md` also applies here.
 | Players | named by color: Red, Blue, Green, Yellow, Purple, Orange, Cyan, White |
 | Scoreboard and kill feed | text size 22; a death stays 4 s, at most 4 |
 | HUD looks (decided 2026-11-26) | black panel at 0.85 behind text; player lines in the player's color |
-| Items (decided 2026-11-26) | carry at most 120 rifle rounds, 8 rockets, 3 health kits (50 hit points each); 4 slots; a life starts with 60 rounds, 8 rockets (until L2), 1 kit; key E uses a kit |
+| Items (decided 2026-11-26) | carry at most 120 rifle rounds, 8 rockets, 3 health kits (50 hit points each); one slot per item; a life starts with 60 rounds and 1 kit; key E uses a kit |
+| Loot (decided 2026-11-26) | 4 health spots (1 kit, back after 15 s), 4 ammo (30 rounds, 15 s), 2 rockets (4, 20 s), 1 launcher on the high platform (launcher + 4 rockets, 30 s, comes loaded: 4 in the magazine); taken within 0.9 m; death drops stay 20 s |
 | Health | 100, respawn after 3 s, 1 s spawn protection (ends on firing), die below -10 m |
 | Character size (decided 2026-11-26) | the fox: radius 0.35 m, height 1.2 m, eyes 1.0 m |
 | HUD | hit marker 0.2 s, text size 28, crosshair 24 px |
@@ -76,6 +77,6 @@ Arena steps 1 to 7, the planned game is complete: animated, colored foxes walk t
 fight timed free-for-all matches with a rifle and rockets, alone, on one computer or from browsers on
 the local network (`play-lan.bat`). The server decides hits, deaths, scores and the match; the HUD
 shows health, ammo, clock, kill feed, scoreboard and winner; weapons, hits, deaths, movement and the
-match are heard. Players carry reserve ammunition and health kits (inventory and loot plan, step L1;
+match are heard. Players carry reserve ammunition and health kits (inventory and loot plan, steps L1 and L2: map pickups, launcher found on the map, death drops;
 `../INVENTORY_LOOT_PLAN.md`). The server needs `--headless --no-render`. Not tried by hand or ear, or from a
 second device.
