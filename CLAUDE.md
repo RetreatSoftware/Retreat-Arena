@@ -47,8 +47,13 @@ The root `../CLAUDE.md` also applies here.
   (`scripts/play-lan.ps1`, decided 2026-11-26): web build, then a server that serves it to the local
   network over HTTPS (`--serve-web`, engine capability).
 - `scripts/web/`: `build.mjs` (browser build into `target/web/` by the engine's `build_web.mjs`)
-  and `run_in_browser.mjs <script>`. CI runs the picture scripts and the network check in the browser;
-  `walk.cmds` asserts the same `state.hash` natively and in the browser.
+  and `run_in_browser.mjs <script>`. CI builds the browser game and runs only the network check in it.
+- **Browser picture scripts run locally, not in CI** (decided with the user 2026-11-27: the step took
+  25-33 minutes a run). When a change touches browser-specific behavior (engine bump affecting
+  rendering or web, `scripts/web/`, new asset loading), run
+  `node scripts/web/run_in_browser.mjs <script> --timeout 900` for each `scripts/verify/*.cmds` and open
+  the PNGs. `walk.cmds` asserts the same `state.hash` natively and in the browser, so run it there
+  whenever the engine or movement changes. Do not wait on CI after pushing: check it once later.
 - `scripts/verify/simulation/*.cmds`: checks with nothing to see (rules and timers). Run with
   `--headless --no-render`: a software renderer would take minutes per script.
 - Per change: `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test`,

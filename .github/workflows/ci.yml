@@ -59,8 +59,8 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: cargo check --target wasm32-unknown-unknown
 
-  # The browser build, driven like a player's browser: the picture scripts run in headless Chrome
-  # (SwiftShader WebGL2) with the native state hashes, and a browser client plays with native ones.
+  # The browser build, and a browser client playing with native ones. The picture scripts are not run
+  # in the browser here (too slow; see CLAUDE.md).
   browser:
     runs-on: ubuntu-latest
     steps:
@@ -81,13 +81,6 @@ jobs:
         with:
           node-version: 24
       - run: node scripts/web/build.mjs
-      - name: Run scripts/verify in headless Chrome
-        run: |
-          for script in scripts/verify/*.cmds; do
-            echo "::group::$script"
-            node scripts/web/run_in_browser.mjs "$script" --timeout 900
-            echo "::endgroup::"
-          done
       - name: Network check with a browser client on the page the server serves
         run: |
           cargo build
