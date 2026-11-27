@@ -63,7 +63,9 @@ before `loot` before `projectile_launcher`).
   `template.json` in a temporary folder and runs fmt, clippy, tests (full match included), the
   WebAssembly check and its scripts; snapshots in `target/combinations/<name>/`. Run it, and open the
   pictures, when a change touches `src/`, `template.json`, `Cargo.toml` or a script (about 15
-  minutes). CI checks the full selection only. It rebuilds `target/debug/` for its copies: run
+  minutes). CI checks the full selection, and format, lint and tests (full match
+  included) of the smallest (`--tests-only`). Retreat-Forge checks what its builder makes of every
+  selection (`scripts/check_selections.mjs` there). It rebuilds `target/debug/` for its copies: run
   `cargo build` before starting the game again.
 - `scripts/sounds/generate.mjs` makes `assets/sounds/*.wav`; CI runs it with `--check`.
 - `scripts/verify/*.cmds`: one script per check that writes pictures. Run from the repository root and

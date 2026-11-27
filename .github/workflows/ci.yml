@@ -41,6 +41,10 @@ jobs:
         run: |
           cargo build
           node scripts/verify/network/run.mjs --software-renderer
+      # The other end of the choices: no optional module at all. Tests only, to keep the run short;
+      # every selection is checked locally (scripts/combinations/check.mjs).
+      - name: The smallest selection builds and plays its full match
+        run: node scripts/combinations/check.mjs rockets-off_items-none --tests-only
       - name: Upload snapshots
         if: always()
         uses: actions/upload-artifact@v4

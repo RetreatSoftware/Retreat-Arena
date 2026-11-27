@@ -6,6 +6,7 @@
 //   node scripts/combinations/check.mjs                      all combinations
 //   node scripts/combinations/check.mjs rockets-off_items-none   only those named
 //   node scripts/combinations/check.mjs --list               what would be checked, nothing built
+//   node scripts/combinations/check.mjs <name> --tests-only   format, lint and tests only (CI)
 //
 // Copies are made in the system's temporary directory (or --work <folder>) and share this
 // repository's target/. Snapshots of a combination: target/combinations/<name>/. Afterwards
@@ -22,6 +23,7 @@ const rules = template.leave_out_a_module;
 
 const args = process.argv.slice(2);
 const listOnly = args.includes("--list");
+const testsOnly = args.includes("--tests-only");
 const workIndex = args.indexOf("--work");
 const work = workIndex >= 0 ? resolve(args[workIndex + 1]) : join(tmpdir(), "retreat-arena-combinations");
 // Everything else is a combination's name.
@@ -133,6 +135,11 @@ for (const { name, modules } of known.filter((c) => !wanted.length || wanted.inc
   run(folder, "cargo fmt --check", "cargo", ["fmt", "--check"]);
   run(folder, "cargo clippy", "cargo", ["clippy", "--all-targets", "--", "-D", "warnings"]);
   run(folder, "cargo test", "cargo", ["test"]);
+  if (testsOnly) {
+    run(folder, "cargo clean of the copy", "cargo", ["clean", "-p", "retreat_arena"]);
+    rmSync(folder, { recursive: true });
+    continue;
+  }
   run(folder, "cargo check for WebAssembly", "cargo", ["check", "--target", "wasm32-unknown-unknown"]);
   run(folder, "cargo build", "cargo", ["build"]);
   for (const script of alone) {
