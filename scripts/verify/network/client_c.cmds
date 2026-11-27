@@ -16,7 +16,8 @@ wait_until 20000 assert.hud_shown hud_kill0 false
 movement.look 3 0
 wait_until 60000 assert.match_finished
 wait 64
-assert.match_winner 1
+# A client predicts the end of the clock itself; the server's result may arrive a moment later.
+wait_until 2000 assert.match_winner 1
 wait_until 20000 assert.hud_text hud_match_banner Blue wins
 movement.look -3 0
 wait_until 60000 assert.match_running
