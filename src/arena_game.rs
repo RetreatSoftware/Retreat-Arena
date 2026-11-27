@@ -167,32 +167,39 @@ fn inventory() -> InventoryConfig {
 
 /// What lies at the map's pickup spots and what the dead leave (recorded in CLAUDE.md).
 fn loot() -> LootConfig {
-    let kind = |kind: &str, contents: &[(&str, u32)], respawn_seconds, color| PickupKind {
+    let kind = |kind: &str, contents: &[(&str, u32)], respawn_seconds, color, size| PickupKind {
         kind: kind.to_string(),
         contents: contents
             .iter()
             .map(|&(item, count)| (ItemId::new(item), count))
             .collect(),
         respawn_seconds,
-        look: PickupLook { color, radius: 0.3 },
+        look: PickupLook { color, size },
     };
     let green = Color::srgb(0.1, 0.9, 0.2);
     let yellow = Color::srgb(1.0, 0.85, 0.1);
     let orange = Color::srgb(1.0, 0.4, 0.05);
     let violet = Color::srgb(0.75, 0.2, 1.0);
+    // The shapes tell them apart too: a cube, a flat crate, a short and a long bar.
+    let cube = Vec3::splat(0.45);
+    let crate_shape = Vec3::new(0.55, 0.25, 0.4);
+    let short_bar = Vec3::new(0.65, 0.22, 0.22);
+    let long_bar = Vec3::new(1.1, 0.28, 0.28);
+    let launcher: &[(&str, u32)] = &[("launcher", 1), ("rockets", 4)];
     LootConfig {
         kinds: vec![
-            kind("health", &[("health_kit", 1)], 15.0, green),
-            kind("ammo", &[("rifle_ammo", 30)], 15.0, yellow),
-            kind("rockets", &[("rockets", 4)], 20.0, orange),
-            kind("launcher", &[("launcher", 1), ("rockets", 4)], 30.0, violet),
+            kind("health", &[("health_kit", 1)], 15.0, green, cube),
+            kind("ammo", &[("rifle_ammo", 30)], 15.0, yellow, crate_shape),
+            kind("rockets", &[("rockets", 4)], 20.0, orange, short_bar),
+            kind("launcher", launcher, 30.0, violet, long_bar),
         ],
         reach: 0.9,
         drop_seconds: 20.0,
         drop_look: PickupLook {
             color: Color::srgb(0.95, 0.95, 0.95),
-            radius: 0.25,
+            size: Vec3::splat(0.3),
         },
+        ..default()
     }
 }
 
