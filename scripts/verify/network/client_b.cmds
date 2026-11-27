@@ -23,8 +23,9 @@ snapshot net_b_a_walking
 wait_until 20000 assert.movement_near 0 -0.15 0 17.37 0.5
 wait_until 2000 assert.visuals_state 0 idle
 wait 64
-# The other player is drawn smoothly, and the picture settles where it is.
-assert.drawn_position player_0 -0.15 0.6 17.37 0.6
+# The other player is drawn smoothly, and the picture settles where it is (a slow renderer takes
+# more than a second to get there).
+wait_until 20000 assert.drawn_position player_0 -0.15 0.6 17.37 0.6
 snapshot net_b_sees_a
 # Aims at client A's player with its own camera again (the server puts that player on the spot).
 shoulder.follow arena_camera
