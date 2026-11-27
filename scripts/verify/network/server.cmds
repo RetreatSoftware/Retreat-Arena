@@ -38,6 +38,11 @@ match.set_clock 600
 assert.match_score 1 0
 assert.health 0 100
 assert.launcher_rockets 0
+# B turns when it is ready to pick something up.
+wait_until 60000 assert.movement_look 1 -1 0.01
+physics.teleport player_1 20 0.6 6
+wait_until 2000 assert.inventory 1 health_kit 2
+assert.loot_available health_east false
 # C leaves, then B.
 wait_until 60000 assert.spawn_count 1
 wait 64

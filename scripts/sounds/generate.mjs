@@ -110,6 +110,17 @@ const SOUNDS = {
     const body = lowPass();
     return [0.25, (t) => body(hiss(), glide(600, 5000, t / 0.2)) * Math.min(1, t / 0.04) * decay(t, 0.08)];
   },
+  heal: () => melody([[523, 0.07], [659, 0.07], [784, 0.07], [1047, 0.16]]),
+  pickup_health: () => melody([[659, 0.06], [988, 0.12]]),
+  pickup_ammo: () => {
+    const hiss = noise(67);
+    const body = lowPass();
+    // Two metallic ticks.
+    const tick = (t, at) => (t >= at ? decay(t - at, 0.018) : 0);
+    const ring = sine();
+    return [0.2, (t) => (body(hiss(), 5000) + 0.5 * ring(1750)) * (tick(t, 0.0) + tick(t, 0.08))];
+  },
+  pickup_weapon: () => melody([[392, 0.07], [523, 0.07], [784, 0.07], [1047, 0.2]]),
   match_start: () => melody([[523, 0.14], [523, 0.14], [784, 0.35]]),
   match_end: () => melody([[784, 0.16], [659, 0.16], [523, 0.16], [392, 0.45]]),
 };

@@ -36,6 +36,15 @@ input.key_down ControlLeft
 wait 4
 assert.audio_playing sound/move/0/dash/1
 input.key_up ControlLeft
+# A pickup is heard, and so is the kit used afterwards.
+physics.teleport player_0 20 0.6 6
+wait 3
+assert.audio_playing sound/loot/0/1
+health.damage 0 40 1
+wait 3
+input.tap E
+wait 3
+assert.audio_playing sound/item/0/1
 match.end
 wait 3
 assert.audio_playing sound/match/0/end

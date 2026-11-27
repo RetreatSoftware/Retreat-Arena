@@ -162,12 +162,17 @@ fn inventory() -> InventoryConfig {
         // One slot per item the game has: nothing is ever turned away for lack of room.
         slots: items().0.len() as u32,
         loadout: vec![start("rifle_ammo", 60), start("health_kit", 1)],
+        use_sound: sound("heal", 0.35),
     }
 }
 
 /// What lies at the map's pickup spots and what the dead leave (recorded in CLAUDE.md).
 fn loot() -> LootConfig {
-    let kind = |kind: &str, contents: &[(&str, u32)], respawn_seconds, color, size| PickupKind {
+    let kind = |kind: &str,
+                contents: &[(&str, u32)],
+                respawn_seconds,
+                (color, size),
+                (sound_name, volume): (&str, f32)| PickupKind {
         kind: kind.to_string(),
         contents: contents
             .iter()
@@ -175,7 +180,11 @@ fn loot() -> LootConfig {
             .collect(),
         respawn_seconds,
         look: PickupLook { color, size },
+        sound: sound(sound_name, volume),
     };
+    let health_sound = ("pickup_health", 0.35);
+    let ammo_sound = ("pickup_ammo", 0.35);
+    let weapon_sound = ("pickup_weapon", 0.45);
     let green = Color::srgb(0.1, 0.9, 0.2);
     let yellow = Color::srgb(1.0, 0.85, 0.1);
     let orange = Color::srgb(1.0, 0.4, 0.05);
@@ -188,10 +197,28 @@ fn loot() -> LootConfig {
     let launcher: &[(&str, u32)] = &[("launcher", 1), ("rockets", 4)];
     LootConfig {
         kinds: vec![
-            kind("health", &[("health_kit", 1)], 15.0, green, cube),
-            kind("ammo", &[("rifle_ammo", 30)], 15.0, yellow, crate_shape),
-            kind("rockets", &[("rockets", 4)], 20.0, orange, short_bar),
-            kind("launcher", launcher, 30.0, violet, long_bar),
+            kind(
+                "health",
+                &[("health_kit", 1)],
+                15.0,
+                (green, cube),
+                health_sound,
+            ),
+            kind(
+                "ammo",
+                &[("rifle_ammo", 30)],
+                15.0,
+                (yellow, crate_shape),
+                ammo_sound,
+            ),
+            kind(
+                "rockets",
+                &[("rockets", 4)],
+                20.0,
+                (orange, short_bar),
+                ammo_sound,
+            ),
+            kind("launcher", launcher, 30.0, (violet, long_bar), weapon_sound),
         ],
         reach: 0.9,
         drop_seconds: 20.0,
@@ -199,6 +226,7 @@ fn loot() -> LootConfig {
             color: Color::srgb(0.95, 0.95, 0.95),
             size: Vec3::splat(0.3),
         },
+        drop_sound: sound("pickup_ammo", 0.3),
         ..default()
     }
 }
@@ -223,6 +251,7 @@ fn combat_hud() -> CombatHudConfig {
         scoreboard_font_size: 22.0,
         kill_feed_seconds: 4.0,
         kill_feed_lines: 4,
+        pickup_seconds: 2.0,
         panel: Color::srgba(0.0, 0.0, 0.0, 0.85),
         hit_sound: sound("hit", 0.35),
     }
@@ -384,6 +413,12 @@ mod tests {
     fn every_sound_the_game_names_is_in_its_assets() {
         let (rifle, launcher, health) = (rifle(), launcher(), health());
         let (hud, rules, movement) = (combat_hud(), match_rules(), movement());
+        let loot = loot();
+        let pickups = loot
+            .kinds
+            .into_iter()
+            .map(|kind| kind.sound)
+            .chain([loot.drop_sound, inventory().use_sound]);
         let cues = [
             rifle.shot_sound,
             rifle.reload_sound,
@@ -398,7 +433,7 @@ mod tests {
             movement.jump_sound,
             movement.dash_sound,
         ];
-        for cue in cues {
+        for cue in cues.into_iter().chain(pickups) {
             let cue = cue.expect("the game gives every sound a cue");
             let file = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
                 .join("assets")

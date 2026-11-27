@@ -754,6 +754,22 @@ fn arena_preset_full_match() {
     run_until_health(&mut harness, 0, 100, 300);
     // The dead player's items lie where it fell.
     on_server(&mut harness, "assert.loot_drops 1");
+    // The killer takes them, finds a health kit and uses one.
+    on_server(&mut harness, "physics.teleport player_1 -8 0.6 18");
+    harness.run_idle(40);
+    on_server(&mut harness, "assert.loot_drops 0");
+    harness.client_apps[1].world_mut().run_schedule(Update);
+    on_client(&mut harness, 1, "assert.hud_shown hud_pickup0 true");
+    on_server(&mut harness, "physics.teleport player_1 20 0.6 6");
+    harness.run_idle(60);
+    on_server(&mut harness, "assert.loot_available health_east false");
+    on_server(&mut harness, "assert.inventory 1 health_kit 3");
+    on_server(&mut harness, "health.damage 1 60 0");
+    harness.run_idle(60);
+    harness.step(&[(1, vec!["inventory.use health_kit".to_string()])]);
+    harness.run_idle(60);
+    on_server(&mut harness, "assert.health 1 90");
+    on_server(&mut harness, "assert.inventory 1 health_kit 2");
     // Player 1 fetches the launcher from the high platform.
     on_server(&mut harness, "physics.teleport player_1 -3.5 2.6 -21.5");
     harness.run_idle(100);
@@ -813,6 +829,8 @@ fn arena_preset_full_match() {
         "move/0/dash/1",
         "match/0/end",
         "match/1/start",
+        "loot/1/",
+        "item/1/1",
     ] {
         assert!(
             heard.iter().any(|id| id.starts_with(start)),

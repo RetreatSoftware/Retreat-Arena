@@ -94,6 +94,12 @@ assert.launcher_ammo 1 4
 wait_until 20000 assert.hud_shown hud_match_banner false
 wait_until 20000 assert.hud_shown hud_match_score_head false
 snapshot net_b_restarted
+# A pickup over the network: the server puts this player on a health kit (the turn is the signal).
+movement.look -1 0
+wait_until 20000 assert.inventory 1 health_kit 2
+wait_until 20000 assert.loot_available health_east false
+wait 32
+snapshot net_b_pickup
 # Client C leaves first.
 wait_until 60000 assert.spawn_count 2
 wait 64

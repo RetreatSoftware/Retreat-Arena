@@ -22,10 +22,22 @@ All commands are PowerShell, run from this folder.
 
 Five rifle hits kill, or one direct rocket and one rifle hit; you come back after 3 seconds. A match
 lasts three minutes; the winner is shown for eight seconds, then the next match starts. Every life
-starts with the rifle, 60 spare rounds and one health kit. Walk over the turning boxes on the map to
-pick things up: green a health kit, yellow rifle rounds, orange rockets, violet (on the high
-platform) the rocket launcher with rockets. They come back after a while. The dead drop what they
-carried (white) for 20 seconds. Nothing is kept after a death or a match.
+starts with the rifle, 60 spare rounds and one health kit. Nothing is kept after a death or a match.
+
+## Loot
+
+Walk over a turning box to pick it up. The screen names what you got, and everyone near hears it. A
+box you have no room for stays (you carry at most 120 rifle rounds, 8 rockets and 3 health kits).
+
+| Box | Gives | Where | Back after |
+|---|---|---|---|
+| green cube | 1 health kit | 4 places | 15 s |
+| yellow crate | 30 rifle rounds | 4 places | 15 s |
+| orange bar | 4 rockets | east and west | 20 s |
+| long violet bar | rocket launcher (loaded) and 4 rockets | the high platform | 30 s |
+| white cube | what a dead player carried | where they fell | gone after 20 s |
+
+You need the launcher to fire rockets.
 
 ## Play alone
 

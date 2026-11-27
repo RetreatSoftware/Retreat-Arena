@@ -18,10 +18,13 @@ input.key_up W
 wait 5
 assert.inventory 0 health_kit 2
 assert.hud_text hud_item0 Health kit x2
+assert.hud_text hud_pickup0 +1 Health kit
+snapshot loot_health_notice
 physics.teleport player_0 20 0.6 11
 wait 40
 snapshot loot_health_taken
 wait 800
+assert.hud_shown hud_pickup0 false
 assert.loot_available health_east false
 wait_until 200 assert.loot_available health_east true
 wait 5
@@ -38,6 +41,8 @@ assert.inventory 0 launcher 1
 assert.inventory 0 rockets 4
 assert.launcher_ammo 0 4
 assert.hud_text hud_ammo_launcher Rockets 4/4 +4
+assert.hud_text hud_pickup0 +4 Rockets
+assert.hud_text hud_pickup1 +1 Rocket launcher
 snapshot loot_launcher_taken
 physics.teleport player_0 22 0.6 -4
 wait 30
