@@ -15,24 +15,56 @@ The root `../CLAUDE.md` also applies here.
   are `retreat_engine` (`launch`, `dispatch_command_line`, and `CommandScript` / `NetServer` /
   `NetClient` to know whether someone is just playing; tests also the simulation plugins and the
   network harness) and `retreat_engine_api`.
-- A module is selected by adding its dependency in `Cargo.toml` and its plugin in
-  `src/arena_game.rs::add_arena_plugins`. Its numbers are overridden there by inserting its config
-  resource before the plugin.
+- A module every arena has is selected by its dependency in `Cargo.toml` and its plugin in
+  `src/arena_game.rs::add_arena_plugins`, its numbers by inserting its config resource there.
+- An **optional** module follows "Optional modules" below. Core files (everything outside
+  `src/modules/`) never name an optional module's crate.
 - Do not modify sibling repositories from this one without being asked.
+
+## Optional modules (decided 2026-11-27, build pipeline step B1)
+
+This repository is the builder's only template (`../BUILD_PIPELINE_PLAN.md`). `template.json` is the
+data the builder reads: the options and their choices, the optional modules (`inventory`, `loot`,
+`projectile_launcher`), what requires what (`loot` requires `inventory`) and how to leave one out:
+
+1. delete `src/modules/<id>/` (its wiring, numbers and tests);
+2. delete its two lines in `src/modules/mod.rs` (`mod <id>;` and `    <id>::MODULE,`);
+3. delete its dependency line in `Cargo.toml` (one line, starting `<crate> = `; keep it one line).
+
+No cargo features and no runtime switches: what is in the build is what these three places say.
+A module's file has `pub const MODULE: OptionalModule` (`src/optional_module.rs`): `declare` adds
+its items, start equipment and pickup kinds to `Setup`; `add` inserts its config and plugin. Modules
+never name each other. The rule "with rockets and no `loot`, players start with the launcher" is
+`Setup::found` carried from the start unless a module sets `places_pickups`. List order in
+`src/modules/mod.rs` is the order of items on screen and of the full match's parts (`inventory`
+before `loot` before `projectile_launcher`).
 
 ## Layout
 
 - `src/main.rs` calls `retreat_engine::launch`.
 - `assets/`: the game's files, each third-party one credited in `assets/CREDITS.md`. The fox is the
   character until real models exist.
-- `src/arena_game.rs`: module selection, `MAP_ID`, the character model and its clips, one flat color
-  per player, the character size, the weapon, health and HUD numbers, camera, sky and lights. A game started with no
+- `src/arena_game.rs`: the modules every arena has, `MAP_ID`, the character model and its clips, one
+  flat color per player, the character size, the rifle, health, match and HUD numbers, camera, sky and
+  lights. A game started with no
   script and no network spawns the solo player (id 0). One directional light only: the browser draws
   no second one.
 - `src/net_play_tests.rs`: server and clients in one process (this binary crate has no `tests/`).
   **Arena preset check** (decided 2026-11-26): `arena_preset_full_match` (a whole 180 s match over a
   lossy link, deterministic) together with the real-process network check is what proves the arena
-  module set playable.
+  module set playable. Each optional module adds its part to that match and its own tests in
+  `src/modules/<id>/tests.rs` (`ModuleTest`).
+- **What a script needs** is its first line: `# needs: <optional module ids>` or `# needs: nothing`,
+  plus `# without: <ids>` for a script that only holds when a module is absent (those live in
+  `scripts/verify/reduced/`, which CI's loops skip). A core script asserts nothing an optional module
+  changes (e.g. no reserve `+n` in the ammunition readout). The network scripts and `walk.cmds` (state
+  hash) need all three.
+- `node scripts/combinations/check.mjs [<name>...] [--list]`: makes each of the 6 selections from
+  `template.json` in a temporary folder and runs fmt, clippy, tests (full match included), the
+  WebAssembly check and its scripts; snapshots in `target/combinations/<name>/`. Run it, and open the
+  pictures, when a change touches `src/`, `template.json`, `Cargo.toml` or a script (about 15
+  minutes). CI checks the full selection only. It rebuilds `target/debug/` for its copies: run
+  `cargo build` before starting the game again.
 - `scripts/sounds/generate.mjs` makes `assets/sounds/*.wav`; CI runs it with `--check`.
 - `scripts/verify/*.cmds`: one script per check that writes pictures. Run from the repository root and
   open every PNG in `target/snapshots/`:
@@ -59,7 +91,7 @@ The root `../CLAUDE.md` also applies here.
 - Per change: `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test`,
   `cargo check --target wasm32-unknown-unknown`, the verify scripts.
 
-## Game numbers (decided 2026-11-25, set in `src/arena_game.rs`)
+## Game numbers (decided 2026-11-25; set in `src/arena_game.rs`, those of an optional module in `src/modules/<id>/`)
 
 | What | Value |
 |---|---|

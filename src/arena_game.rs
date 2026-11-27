@@ -1,14 +1,15 @@
 //! What makes this game: the selected modules, the map choice and the view and light settings.
 //! No gameplay rules here: they belong in Retreat-Modules.
 
+use crate::modules::OPTIONAL_MODULES;
+use crate::optional_module::Setup;
 use bevy::prelude::*;
 use retreat_engine::net::client::NetClient;
 use retreat_engine::net::server::NetServer;
 use retreat_engine::{CommandScript, dispatch_command_line};
 use retreat_engine_api::GameCamera;
 use retreat_gameplay_api::{
-    CharacterSize, ItemCatalog, ItemDefinition, ItemId, ItemKind, MAX_PLAYERS, PlayerRoster,
-    RosterEntry, SoundCue, WeaponKind,
+    CharacterSize, ItemCatalog, MAX_PLAYERS, PlayerRoster, RosterEntry, SoundCue,
 };
 use retreat_module_arena::ArenaModulePlugin;
 use retreat_module_character_movement::{CharacterMovementModulePlugin, MovementConfig};
@@ -17,11 +18,8 @@ use retreat_module_character_visuals::{
 };
 use retreat_module_combat_hud::{CombatHudConfig, CombatHudModulePlugin};
 use retreat_module_health::{HealthConfig, HealthModulePlugin};
-use retreat_module_inventory::{InventoryConfig, InventoryModulePlugin};
-use retreat_module_loot::{LootConfig, LootModulePlugin, PickupKind, PickupLook};
 use retreat_module_match::{MatchConfig, MatchModulePlugin};
 use retreat_module_player_spawn::PlayerSpawnModulePlugin;
-use retreat_module_projectile_launcher::{LauncherConfig, ProjectileLauncherModulePlugin};
 use retreat_module_rifle::{RifleConfig, RifleModulePlugin};
 use retreat_module_third_person_camera::ThirdPersonCameraModulePlugin;
 
@@ -93,7 +91,7 @@ fn match_rules() -> MatchConfig {
 
 /// A sound of `assets/sounds/` (made by `scripts/sounds/generate.mjs`) at `volume`. The volumes
 /// (recorded in CLAUDE.md) keep what repeats quiet and what matters louder.
-fn sound(name: &str, volume: f32) -> Option<SoundCue> {
+pub fn sound(name: &str, volume: f32) -> Option<SoundCue> {
     Some(SoundCue::new(&format!("sounds/{name}.wav"), volume))
 }
 
@@ -115,119 +113,6 @@ fn rifle() -> RifleConfig {
         range: 100.0,
         shot_sound: sound("rifle_shot", 0.3),
         reload_sound: sound("rifle_reload", 0.35),
-    }
-}
-
-/// The rockets' numbers (recorded in CLAUDE.md): a direct hit and one rifle shot kill.
-fn launcher() -> LauncherConfig {
-    LauncherConfig {
-        damage: 80,
-        edge_damage: 20,
-        blast_radius: 3.0,
-        self_damage_percent: 50,
-        speed: 25.0,
-        rocket_radius: 0.15,
-        lifetime_seconds: 4.0,
-        fire_interval_seconds: 0.9,
-        magazine: 4,
-        reload_seconds: 2.0,
-        aim_range: 100.0,
-        launch_sound: sound("rocket_launch", 0.45),
-        explosion_sound: sound("explosion", 0.65),
-        reload_sound: sound("rifle_reload", 0.35),
-    }
-}
-
-/// The reserve ammunition and what else players carry (recorded in CLAUDE.md). Item ids are
-/// stable: commands, scripts and one day saved games name them.
-fn items() -> ItemCatalog {
-    let ammo = ItemKind::Ammo;
-    ItemCatalog(vec![
-        ItemDefinition::new("rifle_ammo", "Rifle rounds", ammo(WeaponKind::Rifle), 120),
-        ItemDefinition::new("rockets", "Rockets", ammo(WeaponKind::Launcher), 8),
-        ItemDefinition::new("health_kit", "Health kit", ItemKind::Heal(50), 3),
-        ItemDefinition::new(
-            "launcher",
-            "Rocket launcher",
-            ItemKind::Weapon(WeaponKind::Launcher),
-            1,
-        ),
-    ])
-}
-
-/// What every new life starts with. The launcher and its rockets are found on the map.
-fn inventory() -> InventoryConfig {
-    let start = |item: &str, count| (ItemId::new(item), count);
-    InventoryConfig {
-        // One slot per item the game has: nothing is ever turned away for lack of room.
-        slots: items().0.len() as u32,
-        loadout: vec![start("rifle_ammo", 60), start("health_kit", 1)],
-        use_sound: sound("heal", 0.35),
-    }
-}
-
-/// What lies at the map's pickup spots and what the dead leave (recorded in CLAUDE.md).
-fn loot() -> LootConfig {
-    let kind = |kind: &str,
-                contents: &[(&str, u32)],
-                respawn_seconds,
-                (color, size),
-                (sound_name, volume): (&str, f32)| PickupKind {
-        kind: kind.to_string(),
-        contents: contents
-            .iter()
-            .map(|&(item, count)| (ItemId::new(item), count))
-            .collect(),
-        respawn_seconds,
-        look: PickupLook { color, size },
-        sound: sound(sound_name, volume),
-    };
-    let health_sound = ("pickup_health", 0.35);
-    let ammo_sound = ("pickup_ammo", 0.35);
-    let weapon_sound = ("pickup_weapon", 0.45);
-    let green = Color::srgb(0.1, 0.9, 0.2);
-    let yellow = Color::srgb(1.0, 0.85, 0.1);
-    let orange = Color::srgb(1.0, 0.4, 0.05);
-    let violet = Color::srgb(0.75, 0.2, 1.0);
-    // The shapes tell them apart too: a cube, a flat crate, a short and a long bar.
-    let cube = Vec3::splat(0.45);
-    let crate_shape = Vec3::new(0.55, 0.25, 0.4);
-    let short_bar = Vec3::new(0.65, 0.22, 0.22);
-    let long_bar = Vec3::new(1.1, 0.28, 0.28);
-    let launcher: &[(&str, u32)] = &[("launcher", 1), ("rockets", 4)];
-    LootConfig {
-        kinds: vec![
-            kind(
-                "health",
-                &[("health_kit", 1)],
-                15.0,
-                (green, cube),
-                health_sound,
-            ),
-            kind(
-                "ammo",
-                &[("rifle_ammo", 30)],
-                15.0,
-                (yellow, crate_shape),
-                ammo_sound,
-            ),
-            kind(
-                "rockets",
-                &[("rockets", 4)],
-                20.0,
-                (orange, short_bar),
-                ammo_sound,
-            ),
-            kind("launcher", launcher, 30.0, (violet, long_bar), weapon_sound),
-        ],
-        reach: 0.9,
-        drop_seconds: 20.0,
-        drop_look: PickupLook {
-            color: Color::srgb(0.95, 0.95, 0.95),
-            size: Vec3::splat(0.3),
-        },
-        drop_sound: sound("pickup_ammo", 0.3),
-        ..default()
     }
 }
 
@@ -281,20 +166,28 @@ fn character_visuals() -> CharacterVisualsConfig {
     }
 }
 
-/// The module selection plus this game's own setup.
+/// What the selected optional modules bring to the game.
+pub fn declared_setup() -> Setup {
+    let mut setup = Setup::default();
+    for module in OPTIONAL_MODULES {
+        (module.declare)(&mut setup);
+    }
+    setup
+}
+
+/// The module selection plus this game's own setup: the modules every arena has, here, and the
+/// optional ones of `src/modules/`.
 pub fn add_arena_plugins(app: &mut App) {
+    let setup = declared_setup();
     // Modules not configured here use their config defaults.
     app.insert_resource(character_size())
         .insert_resource(character_visuals())
         .insert_resource(rifle())
-        .insert_resource(launcher())
         .insert_resource(health())
         .insert_resource(combat_hud())
         .insert_resource(match_rules())
         .insert_resource(player_roster())
-        .insert_resource(items())
-        .insert_resource(inventory())
-        .insert_resource(loot())
+        .insert_resource(ItemCatalog(setup.items.clone()))
         .insert_resource(movement())
         .insert_resource(ClearColor(SKY_COLOR));
     app.add_plugins((
@@ -304,17 +197,17 @@ pub fn add_arena_plugins(app: &mut App) {
         ThirdPersonCameraModulePlugin,
         CharacterVisualsModulePlugin,
         HealthModulePlugin,
-        InventoryModulePlugin,
-        LootModulePlugin,
         MatchModulePlugin,
         RifleModulePlugin,
-        ProjectileLauncherModulePlugin,
         CombatHudModulePlugin,
     ))
     .add_systems(
         Startup,
         (load_chosen_map, spawn_view, start_playing).chain(),
     );
+    for module in OPTIONAL_MODULES {
+        (module.add)(app, &setup);
+    }
 }
 
 /// Loads the map through its command, like any other entry point.
@@ -367,6 +260,17 @@ fn spawn_view(mut commands: Commands) {
     });
 }
 
+/// For tests: the game gives every sound a cue, and its file is in the assets.
+#[cfg(test)]
+pub fn assert_sound_exists(cue: Option<SoundCue>) {
+    let cue = cue.expect("the game gives every sound a cue");
+    let file = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("assets")
+        .join(&cue.path);
+    assert!(file.is_file(), "{} does not exist", file.display());
+    assert_eq!(cue.validate(), Ok(()));
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -402,29 +306,12 @@ mod tests {
     }
 
     #[test]
-    fn every_pickup_spot_of_the_map_holds_something() {
-        let config = loot();
-        for spot in retreat_module_arena::graybox_map().pickup_spots {
-            assert!(config.kind(&spot.kind).is_some(), "{}", spot.name);
-        }
-    }
-
-    #[test]
     fn every_sound_the_game_names_is_in_its_assets() {
-        let (rifle, launcher, health) = (rifle(), launcher(), health());
+        let (rifle, health) = (rifle(), health());
         let (hud, rules, movement) = (combat_hud(), match_rules(), movement());
-        let loot = loot();
-        let pickups = loot
-            .kinds
-            .into_iter()
-            .map(|kind| kind.sound)
-            .chain([loot.drop_sound, inventory().use_sound]);
-        let cues = [
+        for cue in [
             rifle.shot_sound,
             rifle.reload_sound,
-            launcher.launch_sound,
-            launcher.explosion_sound,
-            launcher.reload_sound,
             health.death_sound,
             health.respawn_sound,
             hud.hit_sound,
@@ -432,14 +319,11 @@ mod tests {
             rules.end_sound,
             movement.jump_sound,
             movement.dash_sound,
-        ];
-        for cue in cues.into_iter().chain(pickups) {
-            let cue = cue.expect("the game gives every sound a cue");
-            let file = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-                .join("assets")
-                .join(&cue.path);
-            assert!(file.is_file(), "{} does not exist", file.display());
-            assert_eq!(cue.validate(), Ok(()));
+        ] {
+            assert_sound_exists(cue);
+        }
+        for pickup in declared_setup().pickups {
+            assert_sound_exists(pickup.sound);
         }
     }
 

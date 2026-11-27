@@ -1,3 +1,4 @@
+# needs: inventory loot projectile_launcher
 # One player walks around the arena with real keys and mouse movement: walls stop it and the camera,
 # it climbs the stairs without leaving the ground, jumps onto the high platform and dashes. Run from the repository root.
 spawn.solo 0

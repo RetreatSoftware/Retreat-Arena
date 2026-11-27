@@ -1,3 +1,4 @@
+# needs: nothing
 # What players look like: two foxes in their own colors, facing where they move and playing the clip
 # for what they do (idle, walk, run, air). Run from the repository root.
 spawn.solo 0

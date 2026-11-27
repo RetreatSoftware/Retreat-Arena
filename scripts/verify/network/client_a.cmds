@@ -1,3 +1,4 @@
+# needs: inventory loot projectile_launcher
 # Network check, client A (player 0, the first to join): walks, turns left with the mouse and jumps once
 # client B is there to see it, and is then shot by it. Every input travels as a command line per tick and is predicted.
 wait_until 3000 assert.net_joined

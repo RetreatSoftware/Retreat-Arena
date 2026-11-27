@@ -1,3 +1,4 @@
+# needs: nothing
 # Health and match together on the arena, with the game's default numbers (64 ticks per second:
 # spawn protection 64 ticks, respawn 192, result screen 512). Dummies stand in for players until
 # characters exist. Nothing to see, and many ticks: run without a renderer, from the repository root:

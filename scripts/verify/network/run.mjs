@@ -20,7 +20,9 @@ import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, "..", "..", "..");
-const exe = join(root, "target", "debug", process.platform === "win32" ? "retreat_arena.exe" : "retreat_arena");
+// Cargo builds elsewhere when told to (scripts/combinations/check.mjs shares one build folder).
+const buildFolder = process.env.CARGO_TARGET_DIR ?? join(root, "target");
+const exe = join(buildFolder, "debug", process.platform === "win32" ? "retreat_arena.exe" : "retreat_arena");
 const servedPage = process.argv.includes("--served-page");
 const browser = servedPage || process.argv.includes("--browser");
 const softwareRenderer = process.argv.includes("--software-renderer") ? ["--software-renderer"] : [];

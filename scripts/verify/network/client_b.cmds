@@ -1,3 +1,4 @@
+# needs: inventory loot projectile_launcher
 # Network check, client B (player 1): renders (natively or in the browser), watches client A walk,
 # then shoots it and sees it respawn. It does not walk.
 wait_until 3000 assert.net_joined

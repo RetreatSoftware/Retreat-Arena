@@ -1,0 +1,8 @@
+# needs: inventory loot
+# A pickup is heard. Run from the repository root.
+spawn.solo 0
+wait 80
+physics.teleport player_0 20 0.6 6
+wait 3
+assert.audio_playing sound/loot/0/1
+quit

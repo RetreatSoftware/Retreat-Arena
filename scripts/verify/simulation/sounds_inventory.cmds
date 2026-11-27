@@ -1,0 +1,10 @@
+# needs: inventory
+# A health kit is heard when it is used. Run from the repository root.
+spawn.solo 0
+wait 80
+health.damage 0 40 0
+wait 3
+input.tap E
+wait 3
+assert.audio_playing sound/item/0/1
+quit

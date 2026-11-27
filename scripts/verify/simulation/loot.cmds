@@ -1,3 +1,4 @@
+# needs: inventory loot
 # Pickup rules that need no pictures: a full bag leaves a pickup lying, what nobody takes is gone
 # after twenty seconds, and a new match puts everything back. Run from the repository root.
 spawn.solo 0
@@ -11,13 +12,6 @@ physics.teleport player_0 20 0.6 6
 wait 30
 assert.loot_available health_east true
 assert.inventory 0 health_kit 3
-physics.teleport player_0 -3.5 2.6 -21.5
-wait 40
-assert.loot_available launcher_platform false
-assert.inventory 0 launcher 1
-physics.teleport player_0 22 0.6 -4
-wait 40
-assert.loot_available rockets_east false
 physics.teleport player_0 20 0.6 20
 wait 40
 # What nobody takes is gone after twenty seconds.
@@ -31,14 +25,15 @@ wait 1200
 assert.loot_drops 1
 wait_until 200 assert.loot_drops 0
 # A new match puts everything back.
+physics.teleport player_0 14 0.6 18
+wait 40
+assert.loot_available ammo_southeast false
 health.kill 1
 wait 5
 assert.loot_drops 1
-assert.loot_available launcher_platform false
 match.restart
 wait 5
 assert.loot_drops 0
-assert.loot_available launcher_platform true
-assert.loot_available rockets_east true
-assert.inventory 0 launcher 0
+assert.loot_available ammo_southeast true
+assert.inventory 0 rifle_ammo 60
 quit

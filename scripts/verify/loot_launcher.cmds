@@ -1,0 +1,27 @@
+# needs: inventory loot projectile_launcher
+# The launcher lies on the high platform: found, loaded, with rockets to spare. Run from the
+# repository root.
+spawn.solo 0
+physics.teleport player_0 -3.5 2.6 -17.5
+wait_until 600 assert.visual_ready player_0
+wait 80
+assert.loot_available launcher_platform true
+assert.inventory 0 launcher 0
+assert.hud_shown hud_ammo_launcher false
+snapshot loot_launcher_visible
+input.key_down W
+wait_until 200 assert.loot_available launcher_platform false
+input.key_up W
+wait 5
+assert.inventory 0 launcher 1
+assert.inventory 0 rockets 4
+assert.launcher_ammo 0 4
+assert.hud_text hud_ammo_launcher Rockets 4/4 +4
+assert.hud_text hud_pickup0 +4 Rockets
+assert.hud_text hud_pickup1 +1 Rocket launcher
+snapshot loot_launcher_taken
+physics.teleport player_0 22 0.6 -4
+wait 30
+assert.loot_available rockets_east false
+assert.inventory 0 rockets 8
+quit

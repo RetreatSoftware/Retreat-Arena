@@ -1,0 +1,41 @@
+{
+  "template": "arena",
+  "options": [
+    {
+      "id": "rockets",
+      "title": "Rockets",
+      "default": "on",
+      "choices": [
+        { "id": "on", "title": "A rocket launcher beside the rifle", "modules": ["projectile_launcher"] },
+        { "id": "off", "title": "The rifle only", "modules": [] }
+      ]
+    },
+    {
+      "id": "items",
+      "title": "Items",
+      "default": "loot",
+      "choices": [
+        { "id": "none", "title": "Nothing is carried; ammunition has no end", "modules": [] },
+        { "id": "inventory", "title": "Limited reserve ammunition and health kits", "modules": ["inventory"] },
+        { "id": "loot", "title": "Inventory, with pickups on the map and drops from the dead", "modules": ["inventory", "loot"] }
+      ]
+    }
+  ],
+  "optional_modules": [
+    { "id": "inventory", "crate": "retreat_module_inventory", "directory": "src/modules/inventory", "requires": [] },
+    { "id": "loot", "crate": "retreat_module_loot", "directory": "src/modules/loot", "requires": ["inventory"] },
+    { "id": "projectile_launcher", "crate": "retreat_module_projectile_launcher", "directory": "src/modules/projectile_launcher", "requires": [] }
+  ],
+  "leave_out_a_module": {
+    "delete": "its directory",
+    "module_list_file": "src/modules/mod.rs",
+    "module_list_lines": ["mod {id};", "    {id}::MODULE,"],
+    "dependency_file": "Cargo.toml",
+    "dependency_line_start": "{crate} = "
+  },
+  "scripts": {
+    "directory": "scripts/verify",
+    "needs_header": "# needs: ",
+    "without_header": "# without: "
+  }
+}

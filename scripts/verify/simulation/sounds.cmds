@@ -1,10 +1,8 @@
+# needs: nothing
 # What the game sounds like, as far as a script can hear: every sound is an entity while it plays
 # (output is muted under scripts; run the game to listen). Run from the repository root.
 spawn.solo 0
 spawn.join 1
-# The launcher is found on the map (loot.cmds); here player 0 is simply given it.
-inventory.grant 0 launcher 1
-inventory.grant 0 rockets 8
 physics.teleport player_1 0 0.6 19
 wait 80
 input.capture_cursor
@@ -19,11 +17,7 @@ input.tap R
 wait 3
 assert.audio_playing sound/rifle/0/reload/1
 wait 120
-input.tap MouseRight
-wait 3
-assert.audio_playing sound/rocket/local/local/0/launch
-wait_until 100 assert.audio_playing sound/rocket/local/local/0/boom
-wait_until 100 assert.health_dead 1
+health.kill 1
 wait 3
 assert.audio_playing sound/death/1/0
 wait_until 300 assert.audio_playing sound/respawn/1/1
@@ -36,15 +30,6 @@ input.key_down ControlLeft
 wait 4
 assert.audio_playing sound/move/0/dash/1
 input.key_up ControlLeft
-# A pickup is heard, and so is the kit used afterwards.
-physics.teleport player_0 20 0.6 6
-wait 3
-assert.audio_playing sound/loot/0/1
-health.damage 0 40 1
-wait 3
-input.tap E
-wait 3
-assert.audio_playing sound/item/0/1
 match.end
 wait 3
 assert.audio_playing sound/match/0/end

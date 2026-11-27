@@ -1,3 +1,4 @@
+# needs: nothing
 # Shooting on the arena, one machine: player 0 aims at player 1 seven metres ahead, kills it with
 # the held fire button, reloads, dies and respawns. Run from the repository root.
 spawn.solo 0
@@ -10,8 +11,7 @@ wait 80
 movement.look 0.0859 -0.128
 wait 20
 assert.ui_text hud_health Health 100
-assert.ui_text hud_ammo_rifle Rifle 30/30 +60
-assert.hud_shown hud_ammo_launcher false
+assert.hud_shown hud_ammo_rifle true
 assert.hud_shown hud_crosshair true
 assert.hud_shown hud_hit false
 snapshot combat_aim
@@ -50,7 +50,6 @@ wait 3
 assert.visuals_hidden 0 true
 assert.hud_shown hud_crosshair false
 assert.hud_shown hud_ammo_rifle false
-assert.hud_shown hud_ammo_launcher false
 assert.ui_text hud_health Health 0
 assert.ui_text hud_respawn Respawn in 3
 snapshot combat_own_death

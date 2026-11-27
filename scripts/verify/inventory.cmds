@@ -1,5 +1,6 @@
-# What a player carries: the starting loadout on screen, a health kit used with its key, reserve
-# ammunition running out, and the loadout again after a death and a new match. Run from the
+# needs: inventory
+# What a player carries: the starting loadout on screen, a health kit used with its key, a round
+# taken from the reserve, and the loadout again after a death and a new match. Run from the
 # repository root.
 spawn.solo 0
 spawn.join 1
@@ -7,11 +8,8 @@ physics.teleport player_1 6 0.6 20
 wait_until 600 assert.visual_ready player_0
 wait 80
 assert.inventory 0 rifle_ammo 60
-assert.inventory 0 launcher 0
-assert.inventory 0 rockets 0
 assert.inventory 0 health_kit 1
 assert.hud_text hud_ammo_rifle Rifle 30/30 +60
-assert.hud_shown hud_ammo_launcher false
 assert.hud_text hud_item0 Health kit x1
 snapshot inventory_start
 # At full health the key does nothing.
@@ -31,30 +29,11 @@ assert.health 0 80
 assert.inventory 0 health_kit 2
 assert.hud_text hud_item0 Health kit x2
 snapshot inventory_healed
-# Rockets into the sky until none is left, here or in the magazine.
-# The launcher is found on the map (loot.cmds); here player 0 is simply given it.
-inventory.grant 0 launcher 1
-inventory.grant 0 rockets 8
-wait 3
-assert.hud_text hud_ammo_launcher Rockets 4/4 +8
+# One round fired and reloaded comes out of the reserve.
 input.capture_cursor
 wait 2
-movement.look 0 1.3
-wait 5
-input.key_down MouseRight
-wait_until 200 assert.launcher_ammo 0 0
-wait 140
-assert.inventory 0 rockets 4
-wait_until 900 assert.inventory 0 rockets 0
-wait_until 600 assert.launcher_ammo 0 0
-wait 200
-assert.launcher_ammo 0 0
-input.key_up MouseRight
-assert.hud_text hud_ammo_launcher Rockets 0/4 +0
 movement.look 0 -0.1
 wait 3
-snapshot inventory_no_rockets
-# One round fired and reloaded comes out of the reserve.
 input.tap MouseLeft
 wait 3
 input.tap R
@@ -69,19 +48,11 @@ snapshot inventory_dead
 wait_until 300 assert.health 0 100
 wait 3
 assert.inventory 0 rifle_ammo 60
-assert.inventory 0 launcher 0
-assert.inventory 0 rockets 0
 assert.inventory 0 health_kit 1
-assert.hud_shown hud_ammo_launcher false
 inventory.grant 0 health_kit 2
-# The launcher is found on the map (loot.cmds); here player 0 is simply given it.
-inventory.grant 0 launcher 1
-inventory.grant 0 rockets 8
 wait 3
 match.restart
 wait 3
 assert.inventory 0 health_kit 1
-assert.inventory 0 launcher 0
-assert.hud_shown hud_ammo_launcher false
 snapshot inventory_restarted
 quit

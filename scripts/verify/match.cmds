@@ -1,5 +1,6 @@
+# needs: nothing
 # The match on one machine, with a shortened clock: timer, kill feed, scoreboard on Tab, winner,
-# restart (scores, health, ammo, positions, rockets in flight), then a scoreboard for eight players.
+# restart (scores, health, ammo, positions), then a scoreboard for eight players.
 # Run from the repository root.
 spawn.solo 0
 spawn.join 1
@@ -35,21 +36,13 @@ wait 3
 assert.hud_shown hud_match_score_head false
 assert.hud_shown hud_crosshair true
 wait_until 300 assert.health 1 100
-# Away from the spawn points, one round used, a rocket high in the air.
+# Away from the spawn points, one round used.
 physics.teleport player_0 5 0.6 20
-# The launcher is found on the map (loot.cmds); here player 0 is simply given it.
-inventory.grant 0 launcher 1
-inventory.grant 0 rockets 8
 # The cursor is taken first, as a player's first click does (that click does not shoot).
 input.capture_cursor
 wait 2
 input.tap MouseLeft
 wait 3
-movement.look 0 1.2
-wait 2
-input.tap MouseRight
-wait 5
-assert.launcher_rockets 1
 match.set_clock 0.05
 wait 8
 assert.match_finished
@@ -61,7 +54,6 @@ assert.hud_text hud_match_score_row0 > Red 1 1 0
 input.tap MouseLeft
 wait 3
 assert.rifle_ammo 0 29
-assert.launcher_rockets 1
 movement.look 0 -0.1
 wait 3
 snapshot match_result
@@ -69,12 +61,10 @@ match.set_clock 0.05
 wait 8
 assert.match_running
 assert.match_clock 179 180
-assert.launcher_rockets 0
 assert.match_score 0 0
 assert.match_score 1 0
 assert.health 0 100
 assert.rifle_ammo 0 30
-assert.launcher_ammo 0 4
 assert.movement_near 0 0 0 26 0.1
 wait 3
 assert.hud_shown hud_match_banner false

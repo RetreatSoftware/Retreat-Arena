@@ -1,3 +1,4 @@
+# needs: inventory projectile_launcher
 # Rockets and what shots look like, one machine: a shot over player 1's head misses, a rifle tracer,
 # a rocket in flight, its explosion, the damage, a dead player that is walked through. Run from the
 # repository root.

@@ -163,3 +163,13 @@ node scripts/web/run_in_browser.mjs scripts/verify/walk.cmds
 ```powershell
 node scripts/verify/network/run.mjs --served-page
 ```
+
+## Leaving modules out
+
+The rockets, the inventory and the loot are optional ([template.json](template.json)): without the
+rockets there is only the rifle; without items ammunition has no end; with an inventory but no loot,
+players start with the rocket launcher. To check every combination:
+
+```powershell
+node scripts/combinations/check.mjs
+```

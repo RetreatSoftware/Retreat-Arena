@@ -1,3 +1,4 @@
+# needs: nothing
 # The game loads the graybox arena at startup: pieces exist where the map says, a box placed on the
 # high platform stays on it (the fixed bodies collide), and pictures from above, from an
 # angle and from a spawn point. Run from the repository root.

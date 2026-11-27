@@ -3,13 +3,14 @@
 //! same health, scores and phase, and predict the timers without further corrections.
 
 use crate::arena_game::add_arena_plugins;
+use crate::modules::OPTIONAL_MODULES;
 use bevy::prelude::*;
 use retreat_engine::net::commands::NetCommandsPlugin;
 use retreat_engine::net::harness::{HarnessConfig, NetHarness};
 use retreat_engine::net::link::LinkConditions;
 use retreat_engine::{
-    EffectLog, InputActionsPlugin, NetPosePlugin, PhysicsPlugin, RetreatCommandsPlugin,
-    StateHashPlugin, VisualEffectsPlugin,
+    InputActionsPlugin, NetPosePlugin, PhysicsPlugin, RetreatCommandsPlugin, StateHashPlugin,
+    VisualEffectsPlugin,
 };
 use retreat_engine_api::{
     AnalogInput, NetViewTick, RayCast, SoundEvents, cast_ray, cast_ray_at, run_command_line,
@@ -19,8 +20,6 @@ use retreat_gameplay_api::{
     PlayerId, Scoreboard, SpawnPoints, WeaponKind, WeaponStatus, Weapons, view_direction,
 };
 use retreat_module_character_movement::{ADVANCE_AXIS, MovementState, STRAFE_AXIS};
-use retreat_module_loot::LootConfig;
-use retreat_module_projectile_launcher::{Rocket, blast_look};
 use std::collections::BTreeSet;
 
 fn game_app() -> App {
@@ -53,12 +52,12 @@ const BAD_LINK: LinkConditions = LinkConditions {
     loss: 0.05,
 };
 
-fn harness() -> NetHarness {
+pub fn harness() -> NetHarness {
     harness_over(BAD_LINK, 4)
 }
 
 /// A server and two joined clients; each client has a character.
-fn harness_over(link: LinkConditions, margin_ticks: i64) -> NetHarness {
+pub fn harness_over(link: LinkConditions, margin_ticks: i64) -> NetHarness {
     let config = HarnessConfig {
         margin_ticks,
         state_interval_ticks: 2,
@@ -72,7 +71,7 @@ fn harness_over(link: LinkConditions, margin_ticks: i64) -> NetHarness {
     harness
 }
 
-fn on_server(harness: &mut NetHarness, line: &str) {
+pub fn on_server(harness: &mut NetHarness, line: &str) {
     run_command_line(harness.server_app.world_mut(), line)
         .unwrap_or_else(|error| panic!("`{line}` failed: {error}"));
 }
@@ -96,7 +95,7 @@ fn gameplay(app: &mut App) -> (Vec<(u32, u32)>, Vec<Scoreboard>, Vec<bool>) {
     (health, boards, finished)
 }
 
-fn assert_clients_agree(harness: &mut NetHarness, moment: &str) {
+pub fn assert_clients_agree(harness: &mut NetHarness, moment: &str) {
     let server = gameplay(&mut harness.server_app);
     for (index, client) in harness.client_apps.iter_mut().enumerate() {
         assert_eq!(gameplay(client), server, "client {index} {moment}");
@@ -149,18 +148,10 @@ fn clients_follow_damage_death_respawn_score_and_restart() {
 fn predicted_timers_need_no_corrections() {
     let mut harness = harness();
     on_server(&mut harness, "health.add_dummy 11");
-    // Its items stay with it: a respawned dummy picking up its own drop is the server's to say.
-    harness
-        .server_app
-        .world_mut()
-        .resource_mut::<LootConfig>()
-        .drop_seconds = 0.0;
-    // Its items stay with it: a respawned dummy picking up its own drop is the server's to say.
-    harness
-        .server_app
-        .world_mut()
-        .resource_mut::<LootConfig>()
-        .drop_seconds = 0.0;
+    // Only what a client can predict may happen: modules switch off what is the server's to say.
+    for module in OPTIONAL_MODULES {
+        (module.test.quiet)(&mut harness.server_app);
+    }
     harness.run_idle(100);
     on_server(&mut harness, "health.kill 11");
     harness.run_idle(60);
@@ -174,7 +165,7 @@ fn predicted_timers_need_no_corrections() {
 }
 
 /// `(feet position, movement state, view)` of a player on one machine.
-fn character(app: &mut App, id: u32) -> (Vec3, MovementState, LookAngles) {
+pub fn character(app: &mut App, id: u32) -> (Vec3, MovementState, LookAngles) {
     let world = app.world_mut();
     let size = *world.resource::<CharacterSize>();
     let mut query = world.query::<(&PlayerId, &Transform, &MovementState, &LookAngles)>();
@@ -328,12 +319,12 @@ fn a_dead_character_respawns_at_a_spawn_point_and_walks_again_on_every_machine()
 }
 
 /// Open ground: the shooter's feet, and the target's 8 m north of them.
-const SHOOTER_FEET: Vec3 = Vec3::new(-8.0, 0.0, 26.0);
-const TARGET_FEET: Vec3 = Vec3::new(-8.0, 0.0, 18.0);
+pub const SHOOTER_FEET: Vec3 = Vec3::new(-8.0, 0.0, 26.0);
+pub const TARGET_FEET: Vec3 = Vec3::new(-8.0, 0.0, 18.0);
 
 /// Puts client 1's character (the shooter) and client 0's (the target) in place; the spawn
 /// protection is over afterwards.
-fn face_off(harness: &mut NetHarness) {
+pub fn face_off(harness: &mut NetHarness) {
     for (name, feet) in [("player_1", SHOOTER_FEET), ("player_0", TARGET_FEET)] {
         on_server(
             harness,
@@ -343,11 +334,11 @@ fn face_off(harness: &mut NetHarness) {
     harness.run_idle(150);
 }
 
-fn weapon(app: &mut App, id: u32) -> WeaponStatus {
+pub fn weapon(app: &mut App, id: u32) -> WeaponStatus {
     carried(app, id, WeaponKind::Rifle)
 }
 
-fn carried(app: &mut App, id: u32, kind: WeaponKind) -> WeaponStatus {
+pub fn carried(app: &mut App, id: u32, kind: WeaponKind) -> WeaponStatus {
     let world = app.world_mut();
     let mut query = world.query::<(&PlayerId, &Weapons)>();
     query
@@ -357,7 +348,7 @@ fn carried(app: &mut App, id: u32, kind: WeaponKind) -> WeaponStatus {
         .unwrap_or_else(|| panic!("no weapon {id}"))
 }
 
-fn health(app: &mut App, id: u32) -> u32 {
+pub fn health(app: &mut App, id: u32) -> u32 {
     gameplay(app)
         .0
         .iter()
@@ -520,74 +511,6 @@ fn holding_fire_kills_and_the_victim_respawns_on_every_machine() {
     assert_eq!(harness.server().stats.refusals(), 0);
 }
 
-/// Every rocket on one machine: `(entity, name, exploded)`.
-fn rockets(app: &mut App) -> Vec<(Entity, String, bool)> {
-    let world = app.world_mut();
-    let mut query = world
-        .query_filtered::<(Entity, &Name, &Rocket), Without<retreat_engine_api::RetiredEntity>>();
-    query
-        .iter(world)
-        .map(|(entity, name, rocket)| (entity, name.to_string(), rocket.exploded > 0))
-        .collect()
-}
-
-fn effects_played(app: &App) -> u64 {
-    app.world().resource::<EffectLog>().played
-}
-
-#[test]
-fn a_rocket_is_predicted_once_and_the_server_decides_its_blast_over_a_lossy_link() {
-    let mut harness = harness_over(
-        LinkConditions {
-            latency_ticks: 8,
-            jitter_ticks: 2,
-            loss: 0.08,
-        },
-        4,
-    );
-    face_off(&mut harness);
-    arm_with_launcher(&mut harness, 1);
-    // Level with the target's middle, 8 m ahead.
-    harness.step(&[(1, vec!["launcher.fire 0 -0.05".to_string()])]);
-    let predicted = rockets(&mut harness.client_apps[1]);
-    assert_eq!(predicted.len(), 1, "the shooter sees its rocket at once");
-    assert!(rockets(&mut harness.server_app).is_empty());
-    let (entity, name, _) = predicted[0].clone();
-    let mut server_had_it = false;
-    for tick in 0..120 {
-        harness.run_idle(1);
-        for (found, found_name, _) in rockets(&mut harness.client_apps[1]) {
-            assert_eq!(
-                (found, found_name),
-                (entity, name.clone()),
-                "tick {tick}: the shooter keeps one rocket"
-            );
-        }
-        for app in [&mut harness.server_app, &mut harness.client_apps[0]] {
-            let seen = rockets(app);
-            assert!(seen.len() <= 1, "tick {tick}: {seen:?}");
-            server_had_it |= !seen.is_empty();
-        }
-    }
-    assert!(server_had_it);
-    for app in [&mut harness.server_app]
-        .into_iter()
-        .chain(&mut harness.client_apps)
-    {
-        assert!(rockets(app).is_empty(), "the exploded rocket is removed");
-        let parts = blast_look(3.0).len() as u64;
-        assert_eq!(
-            effects_played(app),
-            parts,
-            "one explosion, replays included"
-        );
-        assert_eq!(carried(app, 1, WeaponKind::Launcher).ammo, 3);
-        assert_eq!(carried(app, 1, WeaponKind::Launcher).hits_landed, 1);
-    }
-    assert_eq!(health(&mut harness.server_app, 0), 20);
-    assert_clients_agree(&mut harness, "after the rocket");
-}
-
 #[test]
 fn a_dead_player_is_walked_through_on_every_machine() {
     let mut harness = harness();
@@ -659,54 +582,8 @@ fn a_match_ends_with_its_winner_and_restarts_by_itself_on_every_machine() {
     }
 }
 
-#[test]
-fn a_restart_with_a_rocket_in_flight_resets_everything_over_a_lossy_link() {
-    let mut harness = harness_over(
-        LinkConditions {
-            latency_ticks: 8,
-            jitter_ticks: 2,
-            loss: 0.08,
-        },
-        4,
-    );
-    let spawns = harness
-        .server_app
-        .world()
-        .resource::<SpawnPoints>()
-        .0
-        .clone();
-    face_off(&mut harness);
-    arm_with_launcher(&mut harness, 1);
-    on_server(&mut harness, "health.damage 0 40 1");
-    harness.step(&[(1, vec!["rifle.fire 0 0.5".to_string()])]);
-    harness.run_idle(30);
-    // Straight up: it would fly for four seconds.
-    harness.step(&[(1, vec!["launcher.fire 0 1.4".to_string()])]);
-    harness.run_idle(40);
-    assert_eq!(rockets(&mut harness.server_app).len(), 1, "in flight");
-    on_server(&mut harness, "match.restart");
-    harness.run_idle(100);
-    for app in [&mut harness.server_app]
-        .into_iter()
-        .chain(&mut harness.client_apps)
-    {
-        assert!(rockets(app).is_empty(), "the old match's rocket is gone");
-        for id in [0, 1] {
-            assert_eq!(health(app, id), 100);
-            assert_eq!(carried(app, id, WeaponKind::Rifle).ammo, 30);
-            assert_eq!(carried(app, id, WeaponKind::Launcher).ammo, 4);
-            let feet = character(app, id).0;
-            assert!(
-                spawns.iter().any(|spawn| spawn.feet.distance(feet) < 0.1),
-                "player {id} is at {feet}, not at a spawn point"
-            );
-        }
-    }
-    assert_clients_agree(&mut harness, "after the restart");
-}
-
 /// The ids of every sound a client asked for, with the ticks' repeats folded together.
-fn sounds_asked(app: &App) -> BTreeSet<String> {
+pub fn sounds_asked(app: &App) -> BTreeSet<String> {
     let events = app.world().resource::<SoundEvents>();
     events
         .requests
@@ -715,13 +592,13 @@ fn sounds_asked(app: &App) -> BTreeSet<String> {
         .collect()
 }
 
-fn on_client(harness: &mut NetHarness, client: usize, line: &str) {
+pub fn on_client(harness: &mut NetHarness, client: usize, line: &str) {
     run_command_line(harness.client_apps[client].world_mut(), line)
         .unwrap_or_else(|error| panic!("client {client}: `{line}` failed: {error}"));
 }
 
 /// Runs until the server's player `id` has `health`, at most `most` ticks.
-fn run_until_health(harness: &mut NetHarness, id: u32, wanted: u32, most: u64) {
+pub fn run_until_health(harness: &mut NetHarness, id: u32, wanted: u32, most: u64) {
     for _ in 0..most {
         if health(&mut harness.server_app, id) == wanted {
             return;
@@ -752,45 +629,16 @@ fn arena_preset_full_match() {
     run_until_health(&mut harness, 0, 0, 300);
     hold_fire(&mut harness, false);
     run_until_health(&mut harness, 0, 100, 300);
-    // The dead player's items lie where it fell.
-    on_server(&mut harness, "assert.loot_drops 1");
-    // The killer takes them, finds a health kit and uses one.
-    on_server(&mut harness, "physics.teleport player_1 -8 0.6 18");
-    harness.run_idle(40);
-    on_server(&mut harness, "assert.loot_drops 0");
-    harness.client_apps[1].world_mut().run_schedule(Update);
-    on_client(&mut harness, 1, "assert.hud_shown hud_pickup0 true");
-    on_server(&mut harness, "physics.teleport player_1 20 0.6 6");
-    harness.run_idle(60);
-    on_server(&mut harness, "assert.loot_available health_east false");
-    on_server(&mut harness, "assert.inventory 1 health_kit 3");
-    on_server(&mut harness, "health.damage 1 60 0");
-    harness.run_idle(60);
-    harness.step(&[(1, vec!["inventory.use health_kit".to_string()])]);
-    harness.run_idle(60);
-    on_server(&mut harness, "assert.health 1 90");
-    on_server(&mut harness, "assert.inventory 1 health_kit 2");
-    // Player 1 fetches the launcher from the high platform.
-    on_server(&mut harness, "physics.teleport player_1 -3.5 2.6 -21.5");
-    harness.run_idle(100);
-    on_server(
-        &mut harness,
-        "assert.loot_available launcher_platform false",
-    );
-    on_server(&mut harness, "assert.inventory 1 launcher 1");
-    on_server(&mut harness, "assert.inventory 1 rockets 4");
-    // A rocket kill: two direct hits.
-    face_off(&mut harness);
-    on_client(&mut harness, 1, "movement.look 0 -0.05");
-    harness.run_idle(30);
-    for left in [20, 0] {
-        harness.step(&[(1, vec!["launcher.fire 0 -0.05".to_string()])]);
-        run_until_health(&mut harness, 0, left, 200);
-        harness.run_idle(60);
+    // Each optional module plays its part, in list order.
+    let mut kills = 1;
+    let mut module_sounds = Vec::new();
+    for module in OPTIONAL_MODULES {
+        let part = (module.test.full_match)(&mut harness);
+        kills += part.kills;
+        module_sounds.extend(part.sounds);
     }
-    run_until_health(&mut harness, 0, 100, 300);
-    assert_clients_agree(&mut harness, "after both kills");
-    on_server(&mut harness, "assert.match_score 1 2");
+    assert_clients_agree(&mut harness, "after the modules' parts");
+    on_server(&mut harness, &format!("assert.match_score 1 {kills}"));
     // The rest of the match, on its own clock.
     let mut ticks = 0;
     while !gameplay(&mut harness.server_app).2[0] {
@@ -822,16 +670,16 @@ fn arena_preset_full_match() {
     let heard = sounds_asked(&harness.client_apps[0]);
     for start in [
         "rifle/1/1",
-        "rocket/1/",
         "death/0/0",
         "respawn/0/1",
         "move/0/jump/1",
         "move/0/dash/1",
         "match/0/end",
         "match/1/start",
-        "loot/1/",
-        "item/1/1",
-    ] {
+    ]
+    .into_iter()
+    .chain(module_sounds)
+    {
         assert!(
             heard.iter().any(|id| id.starts_with(start)),
             "no sound `{start}..` among {heard:?}"
@@ -839,11 +687,12 @@ fn arena_preset_full_match() {
     }
     let own = sounds_asked(&harness.client_apps[1]);
     assert!(own.iter().any(|id| id.starts_with("hud/hit/")), "{own:?}");
-    assert!(own.iter().any(|id| id.ends_with("/boom")), "{own:?}");
 }
 
 /// How many of `item` player `id` carries on one machine.
-fn items_of(app: &mut App, id: u32, item: &str) -> u32 {
+// Used by the tests of modules that carry items; a selection may have none.
+#[allow(dead_code)]
+pub fn items_of(app: &mut App, id: u32, item: &str) -> u32 {
     let world = app.world_mut();
     let mut query = world.query::<(&PlayerId, &Inventory)>();
     query
@@ -853,140 +702,21 @@ fn items_of(app: &mut App, id: u32, item: &str) -> u32 {
         .unwrap_or_else(|| panic!("no inventory {id}"))
 }
 
-#[test]
-fn reserves_and_health_kits_agree_on_every_machine_over_a_lossy_link() {
-    let mut harness = harness_over(
-        LinkConditions {
-            latency_ticks: 8,
-            jitter_ticks: 2,
-            loss: 0.08,
-        },
-        4,
-    );
-    face_off(&mut harness);
-    // Client 1 shoots into the sky twice and reloads: the reserve pays.
-    for line in ["rifle.fire 0 1.2", "rifle.fire 0 1.2", "rifle.reload"] {
-        harness.step(&[(1, vec![line.to_string()])]);
-        harness.run_idle(20);
-    }
-    harness.run_idle(150);
-    let fired = 60 - items_of(&mut harness.server_app, 1, "rifle_ammo");
-    assert!((1..=2).contains(&fired), "{fired} rounds left the reserve");
-    assert_eq!(weapon(&mut harness.server_app, 1).ammo, 30);
-    // Wounded, it uses its kit: at once on its own machine, then everywhere.
-    on_server(&mut harness, "health.damage 1 70 0");
-    harness.run_idle(40);
-    // The input may be lost on the way: then the prediction is taken back and it is sent again.
-    let mut attempts = 0;
-    while health(&mut harness.server_app, 1) == 30 {
-        attempts += 1;
-        assert!(attempts <= 5, "no use of the kit ever arrived");
-        harness.step(&[(1, vec!["inventory.use health_kit".to_string()])]);
-        harness.run_idle(2);
-        assert_eq!(health(&mut harness.client_apps[1], 1), 80, "predicted");
-        assert_eq!(health(&mut harness.server_app, 1), 30, "not there yet");
-        harness.run_idle(100);
-    }
-    assert_eq!(health(&mut harness.server_app, 1), 80);
-    for app in [&mut harness.server_app]
-        .into_iter()
-        .chain(&mut harness.client_apps)
-    {
-        assert_eq!(items_of(app, 1, "health_kit"), 0);
-        assert_eq!(items_of(app, 1, "rifle_ammo"), 60 - fired);
-        assert_eq!(items_of(app, 0, "health_kit"), 1);
-    }
-    assert_clients_agree(&mut harness, "after the kit");
-    // A death empties it, the new life starts with the loadout.
-    on_server(&mut harness, "health.kill 1");
-    harness.run_idle(40);
-    for client in &mut harness.client_apps {
-        assert_eq!(items_of(client, 1, "rifle_ammo"), 0);
-    }
-    harness.run_idle(250);
-    for app in [&mut harness.server_app]
-        .into_iter()
-        .chain(&mut harness.client_apps)
-    {
-        assert_eq!(items_of(app, 1, "rifle_ammo"), 60);
-        assert_eq!(items_of(app, 1, "health_kit"), 1);
-    }
-    assert_eq!(harness.server().stats.refusals(), 0);
+/// What an optional module adds to the checks every selection runs.
+pub struct ModuleTest {
+    /// Its part of `arena_preset_full_match`, after the opening rifle kill (player 1 killed
+    /// player 0, who has respawned).
+    pub full_match: fn(&mut NetHarness) -> MatchPart,
+    /// Switches off, on the server, what a client cannot predict.
+    pub quiet: fn(&mut App),
 }
 
-/// Gives a server player the launcher and rockets, and lets its client learn of it.
-fn arm_with_launcher(harness: &mut NetHarness, id: u32) {
-    on_server(harness, &format!("inventory.grant {id} launcher 1"));
-    on_server(harness, &format!("inventory.grant {id} rockets 8"));
-    // Long enough that the client knows, and its input pacing has settled again.
-    harness.run_idle(100);
-}
-
-#[test]
-fn pickups_and_death_drops_agree_on_every_machine_over_a_lossy_link() {
-    let mut harness = harness_over(
-        LinkConditions {
-            latency_ticks: 8,
-            jitter_ticks: 2,
-            loss: 0.08,
-        },
-        4,
-    );
-    face_off(&mut harness);
-    on_server(&mut harness, "physics.teleport player_1 20 0.6 6");
-    harness.run_idle(100);
-    for client in 0..2 {
-        on_client(
-            &mut harness,
-            client,
-            "assert.loot_available health_east false",
-        );
-        on_client(
-            &mut harness,
-            client,
-            "assert.loot_available launcher_platform true",
-        );
-    }
-    for app in [&mut harness.server_app]
-        .into_iter()
-        .chain(&mut harness.client_apps)
-    {
-        assert_eq!(items_of(app, 1, "health_kit"), 2, "taken once");
-    }
-    // It comes back after fifteen seconds, and is not taken by a player that is full.
-    on_server(&mut harness, "inventory.grant 1 health_kit 1");
-    harness.run_idle(15 * 64);
-    for client in 0..2 {
-        on_client(
-            &mut harness,
-            client,
-            "assert.loot_available health_east true",
-        );
-    }
-    // A death leaves a drop everyone sees; the other player takes it.
-    on_server(&mut harness, "health.kill 1");
-    harness.run_idle(60);
-    for client in 0..2 {
-        on_client(&mut harness, client, "assert.loot_drops 1");
-    }
-    on_server(&mut harness, "physics.teleport player_0 20 0.6 6");
-    harness.run_idle(100);
-    for app in [&mut harness.server_app]
-        .into_iter()
-        .chain(&mut harness.client_apps)
-    {
-        assert_eq!(items_of(app, 0, "health_kit"), 3);
-        assert_eq!(items_of(app, 0, "rifle_ammo"), 120);
-    }
-    // What did not fit (two kits) still lies there, until the new match.
-    for client in 0..2 {
-        on_client(&mut harness, client, "assert.loot_drops 1");
-    }
-    on_server(&mut harness, "match.restart");
-    harness.run_idle(100);
-    for client in 0..2 {
-        on_client(&mut harness, client, "assert.loot_drops 0");
-    }
-    assert_clients_agree(&mut harness, "after the restart");
-    assert_eq!(harness.server().stats.refusals(), 0);
+/// What a module did in the full match.
+// A selection without optional modules constructs none.
+#[allow(dead_code)]
+pub struct MatchPart {
+    /// Kills by player 1.
+    pub kills: i32,
+    /// Starts of sound ids client 0 must have been asked for.
+    pub sounds: Vec<&'static str>,
 }

@@ -1,0 +1,15 @@
+# needs: inventory projectile_launcher
+# A rocket is heard leaving and exploding. Run from the repository root.
+spawn.solo 0
+inventory.grant 0 launcher 1
+inventory.grant 0 rockets 8
+wait 80
+input.capture_cursor
+wait 2
+movement.look 0 -0.3
+wait 5
+input.tap MouseRight
+wait 3
+assert.audio_playing sound/rocket/local/local/0/launch
+wait_until 100 assert.audio_playing sound/rocket/local/local/0/boom
+quit

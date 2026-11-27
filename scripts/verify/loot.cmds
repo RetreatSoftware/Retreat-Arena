@@ -1,4 +1,5 @@
-# Pickups on the map, in pictures: seen, taken, back again, the launcher found, what the dead drop.
+# needs: inventory loot
+# Pickups on the map, in pictures: seen, taken, back again, what the dead drop.
 # Kept short, a browser renders every frame; the other rules are in simulation/loot.cmds. Run from
 # the repository root.
 spawn.solo 0
@@ -8,8 +9,6 @@ physics.teleport player_0 20 0.6 11
 wait_until 600 assert.visual_ready player_0
 wait 80
 assert.loot_available health_east true
-assert.loot_available launcher_platform true
-assert.hud_shown hud_ammo_launcher false
 snapshot loot_health_visible
 # Walking over the health pickup.
 input.key_down W
@@ -29,25 +28,6 @@ assert.loot_available health_east false
 wait_until 200 assert.loot_available health_east true
 wait 5
 snapshot loot_health_respawned
-# The launcher on the high platform: loaded, with rockets to spare.
-physics.teleport player_0 -3.5 2.6 -17.5
-wait 80
-snapshot loot_launcher_visible
-input.key_down W
-wait_until 200 assert.loot_available launcher_platform false
-input.key_up W
-wait 5
-assert.inventory 0 launcher 1
-assert.inventory 0 rockets 4
-assert.launcher_ammo 0 4
-assert.hud_text hud_ammo_launcher Rockets 4/4 +4
-assert.hud_text hud_pickup0 +4 Rockets
-assert.hud_text hud_pickup1 +1 Rocket launcher
-snapshot loot_launcher_taken
-physics.teleport player_0 22 0.6 -4
-wait 30
-assert.loot_available rockets_east false
-assert.inventory 0 rockets 8
 # Player 1 dies and leaves what it carried.
 physics.teleport player_0 6 0.6 18
 wait 60

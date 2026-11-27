@@ -1,3 +1,4 @@
+# needs: inventory loot projectile_launcher
 # Network check, server (see run.mjs): both clients get a character; once client B has left, the
 # server's view of client A's character is printed for comparison.
 wait_until 20000 assert.net_clients 2

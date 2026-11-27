@@ -1,0 +1,19 @@
+# needs: inventory loot projectile_launcher
+# The launcher and rockets found on the map, and put back by a new match, which takes them away
+# again. Run from the repository root.
+spawn.solo 0
+wait 80
+assert.inventory 0 launcher 0
+physics.teleport player_0 -3.5 2.6 -21.5
+wait 40
+assert.loot_available launcher_platform false
+assert.inventory 0 launcher 1
+physics.teleport player_0 22 0.6 -4
+wait 40
+assert.loot_available rockets_east false
+match.restart
+wait 5
+assert.loot_available launcher_platform true
+assert.loot_available rockets_east true
+assert.inventory 0 launcher 0
+quit
