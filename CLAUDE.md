@@ -80,6 +80,21 @@ before `loot` before `projectile_launcher`).
 - `play.bat` (`scripts/play.ps1`): a local server and two client windows. `play-lan.bat`
   (`scripts/play-lan.ps1`, decided 2026-11-26): web build, then a server that serves it to the local
   network over HTTPS (`--serve-web`, engine capability).
+- `scripts/package.mjs` (package plan P2, decided 2026-11-27; `../PACKAGE_PLAN.md`): the game for
+  players in `dist/` (or `--out`): `web/` from the engine's `build_web.mjs --release --no-scripts`
+  (profile `web-release` in `Cargo.toml`, `wasm-opt`, `.br` copies the server sends), the server as a
+  release build for `x86_64-pc-windows-msvc` with the C runtime linked in (`+crt-static` for that
+  target only), `start-server.bat` (ports from `RETREAT_PORT` / `RETREAT_WEB_PORT`, `BEVY_ASSET_ROOT`
+  is `web/`), a README and `retreat-package.json` (marks a package: only a folder with it, or an
+  empty one, is replaced). It lists missing tools with their install commands before building
+  (Forge's window shows that list). Windows only. Checked by Retreat-Forge's
+  `scripts/check_package.mjs` (package copied elsewhere, served, joined by a browser running
+  `scripts/package_check/player.cmds`, kept outside `scripts/verify/` so that no loop or selection
+  filter runs it alone). The development builds are untouched. Measured 2026-11-27: players download
+  6.6 MB (30.3 MB unpacked, wasm 29.7 MB); about 30 minutes from scratch on 12 cores (browser 18, server 10);
+  the two release builds add about 5 GB to `target/` (`x86_64-pc-windows-msvc/release`,
+  `wasm32-unknown-unknown/web-release`, `release`, `web-release`): delete those folders after packaging
+  when `target/` passes 10 GB.
 - `scripts/web/`: `build.mjs` (browser build into `target/web/` by the engine's `build_web.mjs`)
   and `run_in_browser.mjs <script>`. CI builds the browser game and runs only the network check in it.
 - **Browser picture scripts run locally, not in CI** (decided with the user 2026-11-27: the step took

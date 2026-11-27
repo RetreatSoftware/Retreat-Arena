@@ -5299,7 +5299,7 @@ dependencies = [
 [[package]]
 name = "retreat_engine"
 version = "0.1.0"
-source = "git+https://github.com/RetreatSoftware/Retreat-Engine-3D#1d9796dd59befc895bd51b7338154031b9989f6e"
+source = "git+https://github.com/RetreatSoftware/Retreat-Engine-3D#bd790e6e48ce493e65e567f670c91dfef5dafb1b"
 dependencies = [
  "bevy",
  "bevy_rapier3d",
@@ -5320,7 +5320,7 @@ dependencies = [
 [[package]]
 name = "retreat_engine_api"
 version = "0.1.0"
-source = "git+https://github.com/RetreatSoftware/Retreat-Engine-3D#1d9796dd59befc895bd51b7338154031b9989f6e"
+source = "git+https://github.com/RetreatSoftware/Retreat-Engine-3D#bd790e6e48ce493e65e567f670c91dfef5dafb1b"
 dependencies = [
  "bevy",
  "postcard",

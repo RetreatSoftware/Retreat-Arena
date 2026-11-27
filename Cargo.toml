@@ -51,3 +51,15 @@ debug = false
 [profile.web-dev]
 inherits = "dev"
 debug = false
+
+# The browser build players get (`node scripts/package.mjs`, through the engine's
+# `build_web.mjs --release`; package plan P1, measured 2026-11-27 on Retreat Arena, see the engine's
+# CLAUDE.md "Release browser build"): smallest code, link-time optimization over every crate, one
+# codegen unit. Not stripped here: wasm-bindgen reads the `target_features` section, and wasm-opt
+# strips afterwards. Slow to build (about 17 minutes the first time).
+[profile.web-release]
+inherits = "release"
+opt-level = "z"
+lto = "fat"
+codegen-units = 1
+debug = false

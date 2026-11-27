@@ -1,3 +1,5 @@
 /target
 saves/
 CLAUDE.local.md
+/dist
+/dist.partial

@@ -1,0 +1,16 @@
+# Package check, the player (Retreat-Forge scripts/check_package.mjs): a browser opens the page a
+# packaged server serves from a copied folder, joins that server and walks. The server runs no script:
+# it is the package as players get it. A package holds no scripts; the check adds this one to its
+# copy of the page. Outside scripts/verify/ on purpose: it needs that server, so it never runs alone.
+wait_until 3000 assert.net_joined
+wait_until 3000 assert.spawn_count 1
+wait_until 3000 assert.visual_ready player_0
+wait 20
+assert.movement_near 0 0 0 26 0.1
+snapshot package_joined
+input.key_down W
+wait_until 2000 assert.movement_speed 0 6 0.2
+wait 30
+input.key_up W
+wait 30
+snapshot package_walked

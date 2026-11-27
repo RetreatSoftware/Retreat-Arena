@@ -80,6 +80,20 @@ If the printed address is wrong (a VPN), pass the computer's address:
 .\play-lan.bat -LanAddress 192.168.1.20
 ```
 
+## Package for players
+
+One folder, `dist`, to copy to the Windows PC that hosts the game: a smaller browser game (release
+build, compressed) and its server, which need neither Rust nor Node there. Both are release builds,
+so the first time takes long (about 30 minutes); it needs `cargo install wasm-opt --locked` besides
+the tools of `play-lan.bat`, and lists what is missing before it builds.
+
+```powershell
+node scripts/package.mjs
+```
+
+On the host, `start-server.bat` in that folder starts the server; the folder's own README says what
+players see. `--out <folder>` puts the package elsewhere.
+
 ## Start the parts by hand
 
 1. Server (leave it running). It prints `listening on UDP port 5000 certificate-hash <hash>`; the
